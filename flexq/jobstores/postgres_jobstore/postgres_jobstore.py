@@ -3,6 +3,7 @@ from typing import List
 from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
+from psycopg2.errors import UniqueViolation
 
 from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, execution_pool_table_create_query, schema_name, job_instances_table_name, execution_pool_table_name
 
@@ -25,7 +26,11 @@ class PostgresJobStore(JobStoreBase):
         INSERT INTO {schema_name}.{execution_pool_table_name} (job_instance_id, ) VALUES (%s,) 
         """
         with self.conn.cursor() as curs:
-            curs.execute(query, (job_id,))
+            try:
+                curs.execute(query, (job_id,))
+                return True
+            except UniqueViolation:
+                return False
 
     def set_status_for_job(self, job_id: str, status: JobStatusEnum) -> None:
         query = f"""
@@ -61,6 +66,8 @@ class PostgresJobStore(JobStoreBase):
             job = Job(id=job_id, queue_name=result[0])
             job.set_args_bytes(result[1])
             job.set_kwargs_bytes(result[2])
+
+            return job
 
     def get_jobs_ids_in_queues_waiting_for_job(self, job_id: str, queues_names: str) -> List[str]:
         query = f"""

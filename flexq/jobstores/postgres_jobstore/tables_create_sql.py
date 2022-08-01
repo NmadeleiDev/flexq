@@ -30,7 +30,7 @@ create table {schema_name}.{execution_pool_table_name}
     id           serial
         constraint table_name_pk
             primary key,
-    job_instance_id    int   not null,
+    job_instance_id    int unique   not null,
     status             {job_status_enum_name} default {JobStatusEnum.acknowledged},
 
     CONSTRAINT fk_{job_instances_table_name}
