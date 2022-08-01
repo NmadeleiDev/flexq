@@ -1,0 +1,2 @@
+class JobQueueException(Exception):
+    pass
