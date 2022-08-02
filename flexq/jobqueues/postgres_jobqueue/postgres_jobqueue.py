@@ -22,7 +22,7 @@ class PostgresJobQueue(JobQueueBase):
             with conn.cursor() as curs:
                 for queue_name in queues_names:
                     for notification_type in NotificationTypeEnum:
-                        curs.execute("LISTEN %s", (f'{queue_name}{parts_join_char}{notification_type}',))
+                        curs.execute(f"LISTEN {queue_name}{parts_join_char}{notification_type}")
 
                 while True:
                     read_c, _, exc_c = select.select([conn],[],[])
@@ -45,7 +45,7 @@ class PostgresJobQueue(JobQueueBase):
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             with conn.cursor() as curs:
-                curs.execute('NOTIFY %s, %s', (f'{queue_name}{parts_join_char}{notifycation_type}', payload))
+                curs.execute(f'NOTIFY {queue_name}{parts_join_char}{notifycation_type}, %s', (payload, ))
 
     def _handle_notification(self, notification: Notify):
         name_parts = str(notification.channel).split(parts_join_char)
