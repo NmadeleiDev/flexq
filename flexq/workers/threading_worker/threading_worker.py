@@ -33,9 +33,7 @@ class ThreadingWorker(WorkerBase):
             self.jobstore.set_status_for_job(job_id, JobStatusEnum.acknowledged.value)
 
             job = self.jobstore.get_job(job_id)
-            logging.debug(f'starting job {job_id}')
             self._call_executor(job)
-            logging.debug(f'finished job {job_id}')
 
             self.jobstore.set_status_for_job(job_id, JobStatusEnum.finished.value)
 

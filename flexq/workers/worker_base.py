@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Union
 from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists
@@ -30,11 +31,16 @@ class WorkerBase:
     def _call_executor(self, job: Job):
         executor = self.executors[job.queue_name]
 
+        logging.debug(f'starting job {job.id}')
+
         if isinstance(executor, Executor):
             executor.set_flexq_job_id(job.id)
             job.result = executor.perform(*job.args, **job.kwargs)
         else:
             job.result = executor(*job.args, **job.kwargs)
+
+        logging.debug(f'finished job {job.id}')
+        
 
     def wait_for_work(self):
         self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)
