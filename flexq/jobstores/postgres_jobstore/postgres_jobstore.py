@@ -80,7 +80,6 @@ class PostgresJobStore(JobStoreBase):
 
             if result is None:
                 raise JobNotFoundInStore(f'Job id = {job_id} not found in store')
-            logging.debug(f'Found job with id = {job_id}: {result}')
 
             job = Job(id=job_id, queue_name=result[0])
             job.set_args_bytes(result[1])

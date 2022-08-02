@@ -9,7 +9,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 
 class WorkerBase:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True) -> None:
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, run_inspetion_every_n_minutes=2) -> None:
         self.executors = {}
         self.running_jobs = {}
         self.jobstore = jobstore
@@ -17,6 +17,8 @@ class WorkerBase:
 
         self.store_results = store_results
         self.max_parallel_executors = max_parallel_executors
+
+        self.run_inspetion_every_n_minutes = run_inspetion_every_n_minutes
 
         self.start_running_jobs_inspector()
 
@@ -45,4 +47,4 @@ class WorkerBase:
 
         scheduler.start()
 
-        scheduler.add_job(self.inspect_running_jobs, 'interval', minutes=1)
+        scheduler.add_job(self.inspect_running_jobs, 'interval', minutes=self.run_inspetion_every_n_minutes)
