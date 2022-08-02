@@ -8,7 +8,7 @@ setuptools.setup(
     version='0.0.1',
     author='Gregory Potemkin',
     author_email='potemkin3940@gmail.com',
-    description='Fleq is a python library for flexible management of task queues',
+    description='Flexq is a python library for flexible management of task queues',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url='https://github.com/NmadeleiDev/flexq',
