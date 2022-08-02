@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Callable, List
+from typing import Callable, List, Union
 from flexq.job import Job
 
 class NotificationTypeEnum(str, Enum):
@@ -7,7 +7,7 @@ class NotificationTypeEnum(str, Enum):
     done = 'done'
 
 class JobQueueBase:
-    def __init__(self, todo_callback: Callable) -> None:
+    def __init__(self, todo_callback: Union[Callable, None]=None) -> None:
         self.todo_callback = todo_callback
 
     def subscribe_to_queues(self, queues_names: List[str], todo_callback: Callable):

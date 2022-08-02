@@ -1,13 +1,13 @@
 import logging
 import select
-from typing import Callable, List
+from typing import Callable, List, Union
 import psycopg2
 from psycopg2.extensions import Notify
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
 
 class PostgresJobQueue(JobQueueBase):
-    def __init__(self, dsn: str, todo_callback: Callable) -> None:
+    def __init__(self, dsn: str, todo_callback: Union[Callable, None]=None) -> None:
         super().__init__(todo_callback)
         self.dsn = dsn
 
