@@ -9,7 +9,7 @@ class NotificationTypeEnum(str, Enum):
 class JobQueueBase:
     def __init__(self) -> None:
         self.todo_callback = None
-        
+
     def subscribe_to_queues(self, queues_names: List[str], todo_callback: Union[Callable, None]=None):
         raise NotImplemented
 
