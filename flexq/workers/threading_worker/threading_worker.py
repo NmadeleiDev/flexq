@@ -21,32 +21,11 @@ class ThreadingWorker(WorkerBase):
         if self.max_parallel_executors is not None and len(self.running_jobs.keys()) >= self.max_parallel_executors:
             return
 
-        job_thread = Thread(target=self._try_start_job, args=(job_name, job_id))
+        job_thread = Thread(target=self._try_start_job, args=(job_id))
 
         job_thread.start()
 
         self.running_jobs[job_id] = job_thread
-
-    def _try_start_job(self, job_name: str, job_id: str):
-        # пытаемся добавить работу в poll - есть успешно добавлась (т.е. ее там еще не было) , начинаем выполнять
-        if self.jobstore.try_acknowledge_job(job_id):
-            self.jobstore.set_status_for_job(job_id, JobStatusEnum.acknowledged.value)
-
-            job = self.jobstore.get_job(job_id)
-            self._call_executor(job)
-
-            self.jobstore.set_status_for_job(job_id, JobStatusEnum.finished.value)
-
-            if self.store_results and job.result is not None:
-                self.jobstore.save_result_for_job(job_id, job.get_result_bytes())
-
-            for waiting_job_id, waiting_queue_name in self.jobstore.get_waiting_for_job(job_id):
-                self.jobqueue.send_notify_to_queue(
-                    queue_name=waiting_queue_name, 
-                    notifycation_type=NotificationTypeEnum.todo.value, 
-                    payload=waiting_job_id)
-        else:
-            logging.debug(f'seems like job {job_id} is already handled by other worker')
 
     def inspect_running_jobs(self):
         running_jobs = list(self.running_jobs.items())
