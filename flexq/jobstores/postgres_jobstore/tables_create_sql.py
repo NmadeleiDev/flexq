@@ -7,6 +7,8 @@ job_instances_table_name = 'flexq_job'
 job_status_enum_name = 'flexq_job_status'
 execution_pool_table_name = 'flexq_execution_pool'
 
+schema_create_query = f"""CREATE SCHEMA IF NOT EXISTS {schema_name}"""
+
 job_instances_table_create_query = f"""
 create table if not exists {schema_name}.{job_instances_table_name}
 (

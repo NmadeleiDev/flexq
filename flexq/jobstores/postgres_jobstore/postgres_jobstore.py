@@ -5,7 +5,7 @@ from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
 from psycopg2.errors import UniqueViolation
 
-from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, execution_pool_table_create_query, schema_name, job_instances_table_name, execution_pool_table_name
+from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, execution_pool_table_create_query, schema_name, schema_create_query, job_instances_table_name, execution_pool_table_name
 
 class PostgresJobStore(JobStoreBase):
     def __init__(self, dsn: str) -> None:
@@ -19,6 +19,7 @@ class PostgresJobStore(JobStoreBase):
 
     def _init_tables(self):
         with self.conn.cursor() as curs:
+            curs.execute(schema_create_query)
             curs.execute(job_instances_table_create_query)
             curs.execute(job_status_enum_create_query)
             curs.execute(execution_pool_table_create_query)
