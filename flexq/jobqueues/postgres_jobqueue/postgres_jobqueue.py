@@ -6,6 +6,8 @@ from psycopg2.extensions import Notify
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
 
+parts_join_char = "__"
+
 class PostgresJobQueue(JobQueueBase):
     def __init__(self, dsn: str) -> None:
         super().__init__()
@@ -20,7 +22,7 @@ class PostgresJobQueue(JobQueueBase):
             with conn.cursor() as curs:
                 for queue_name in queues_names:
                     for notification_type in NotificationTypeEnum:
-                        curs.execute("LISTEN %s", (f'{queue_name}|{notification_type}',))
+                        curs.execute("LISTEN %s", (f'{queue_name}{parts_join_char}{notification_type}',))
 
                 while True:
                     read_c, _, exc_c = select.select([conn],[],[])
@@ -43,10 +45,10 @@ class PostgresJobQueue(JobQueueBase):
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             with conn.cursor() as curs:
-                curs.execute('NOTIFY %s, %s', (f'{queue_name}|{notifycation_type}', payload))
+                curs.execute('NOTIFY %s, %s', (f'{queue_name}{parts_join_char}{notifycation_type}', payload))
 
     def _handle_notification(self, notification: Notify):
-        name_parts = str(notification.channel).split('|')
+        name_parts = str(notification.channel).split(parts_join_char)
         if len(name_parts) != 2:
             logging.warn(f'Got notification, but its channel name has unexpected format: {notification.channel}, ignoring it')
             return
