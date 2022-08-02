@@ -46,7 +46,7 @@ create table if not exists {schema_name}.{execution_pool_table_name}
 
     CONSTRAINT fk_{job_instances_table_name}
       FOREIGN KEY(job_instance_id) 
-	  REFERENCES {job_instances_table_name}(id)
+	  REFERENCES {schema_name}.{job_instances_table_name}(id)
       ON DELETE CASCADE
 )
 """
