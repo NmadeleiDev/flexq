@@ -33,7 +33,7 @@ class Job:
 
     def set_args_bytes(self, val: bytes):
         val = pickle.loads(val)
-        if not isinstance(val, list):
+        if not isinstance(val, (list, tuple)):
             raise TypeError(f'args must be list, but fould: {type(val)}')
         self.args = val
 
