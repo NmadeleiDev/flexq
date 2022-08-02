@@ -1,5 +1,6 @@
 import logging
 from typing import List, Tuple
+from flexq.exceptions.jobstore import JobNotFoundInStore
 from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
@@ -76,6 +77,10 @@ class PostgresJobStore(JobStoreBase):
         with self.conn.cursor() as curs:
             curs.execute(query, (job_id, ))
             result = curs.fetchone()
+
+            if result is None:
+                raise JobNotFoundInStore(f'Job id = {job_id} not found in store')
+            logging.debug(f'Found job with id = {job_id}: {result}')
 
             job = Job(id=job_id, queue_name=result[0])
             job.set_args_bytes(result[1])

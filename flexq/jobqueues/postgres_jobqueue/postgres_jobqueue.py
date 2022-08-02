@@ -22,10 +22,13 @@ class PostgresJobQueue(JobQueueBase):
             with conn.cursor() as curs:
                 for queue_name in queues_names:
                     for notification_type in NotificationTypeEnum:
-                        curs.execute(f"LISTEN {queue_name}{parts_join_char}{notification_type}")
+                        channel_name = f'{queue_name}{parts_join_char}{notification_type}'
+                        curs.execute(f"LISTEN {channel_name}")
+                        logging.debug(f'Listening for channel {channel_name}')
 
                 while True:
                     read_c, _, exc_c = select.select([conn],[],[])
+                    logging.debug('select on conn triggered')
                     if len(read_c) > 0:
                         conn.poll()
                         while conn.notifies:
