@@ -102,7 +102,7 @@ class PostgresJobStore(JobStoreBase):
         LEFT JOIN {schema_name}.{execution_pool_table_name} as wp ON ji.start_after_job_instance_id = ep.job_instance_id 
         WHERE 
             ep.status IS NULL 
-            AND (ji.start_after_job_instance_id IS NULL OR wp.stats = '{JobStatusEnum.finished}') 
+            AND (ji.start_after_job_instance_id IS NULL OR wp.status = '{JobStatusEnum.finished}') 
             AND ji.job_queue_name = ANY (%s)
         """
         with self.conn.cursor() as curs:
