@@ -8,7 +8,7 @@ job_status_enum_name = 'flexq_job_status'
 execution_pool_table_name = 'flexq_execution_pool'
 
 job_instances_table_create_query = f"""
-create table {schema_name}.{job_instances_table_name}
+create table if not exists {schema_name}.{job_instances_table_name}
 (
     id           serial
         constraint table_name_pk
@@ -23,11 +23,11 @@ create table {schema_name}.{job_instances_table_name}
 """
 
 job_status_enum_create_query = f"""
-CREATE TYPE {job_status_enum_name} AS ENUM ({', '.join(map(lambda x: "'" + x + "'", JobStatusEnum))});
+CREATE TYPE if not exists {job_status_enum_name} AS ENUM ({', '.join(map(lambda x: "'" + x + "'", JobStatusEnum))});
 """
 
 execution_pool_table_create_query = f"""
-create table {schema_name}.{execution_pool_table_name}
+create table if not exists {schema_name}.{execution_pool_table_name}
 (
     id           serial
         constraint table_name_pk
@@ -35,7 +35,7 @@ create table {schema_name}.{execution_pool_table_name}
     job_instance_id    int unique   not null,
     status             {job_status_enum_name} default {JobStatusEnum.acknowledged},
     result             bytea default null,
-    
+
     created_at             timestamp default now(),
 
     CONSTRAINT fk_{job_instances_table_name}

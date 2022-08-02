@@ -10,6 +10,8 @@ from .tables_create_sql import job_instances_table_create_query, job_status_enum
 class PostgresJobStore(JobStoreBase):
     def __init__(self, dsn: str) -> None:
         self.dsn = dsn
+        self._init_db()
+        self._init_tables()
 
     def _init_db(self):
         self.conn = psycopg2.connect(self.dsn)
