@@ -51,7 +51,8 @@ class ThreadingWorker(WorkerBase):
             logging.debug(f'seems like job {job_id} is already handled by other worker')
 
     def inspect_running_jobs(self):
-        for job_id, job_thread in self.running_jobs.items():
+        running_jobs = list(self.running_jobs.items())
+        for job_id, job_thread in running_jobs:
             if not job_thread.is_alive():
                 del self.running_jobs[job_id]
 

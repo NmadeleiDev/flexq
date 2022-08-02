@@ -29,21 +29,10 @@ class PostgresJobQueue(JobQueueBase):
 
         while True:
             read_c, _, exc_c = select.select([conn],[],[])
-            logging.debug('select on conn triggered')
             conn.poll()
             while conn.notifies:
                 notify = conn.notifies.pop(0)
-                logging.debug(f"Got NOTIFY: {notify.pid}, {notify.channel}, {notify.payload}")
                 self._handle_notification(notify)
-            # if select.select([conn],[],[],5) == ([],[],[]):
-            #     # conn.poll()
-            #     logging.debug(f'select read loop, notifies: {conn.notifies}')
-            #     # pass
-            # else:
-            #     conn.poll()
-            #     while conn.notifies:
-            #         notify = conn.notifies.pop(0)
-            #         self._handle_notification(notify)
 
     def send_notify_to_queue(self, queue_name: str, notifycation_type: NotificationTypeEnum, payload: str):
         with psycopg2.connect(self.dsn) as conn:
