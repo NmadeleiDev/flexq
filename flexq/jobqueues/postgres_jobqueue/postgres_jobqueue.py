@@ -27,21 +27,22 @@ class PostgresJobQueue(JobQueueBase):
                         logging.debug(f'Listening for channel {channel_name}')
 
                 while True:
-                    read_c, _, exc_c = select.select([conn],[],[])
-                    logging.debug('select on conn triggered')
-                    if len(read_c) > 0:
+                    # read_c, _, exc_c = select.select([conn],[],[])
+                    # logging.debug('select on conn triggered')
+                    # if len(read_c) > 0:
+                    #     conn.poll()
+                    #     while conn.notifies:
+                    #         notify = conn.notifies.pop(0)
+                    #         logging.debug(f"Got NOTIFY: {notify.pid}, {notify.channel}, {notify.payload}")
+                    #         self._handle_notification(notify)
+                    if select.select([conn],[],[],5) == ([],[],[]):
+                        logging.debug('select read loop')
+                    else:
                         conn.poll()
                         while conn.notifies:
                             notify = conn.notifies.pop(0)
                             logging.debug(f"Got NOTIFY: {notify.pid}, {notify.channel}, {notify.payload}")
                             self._handle_notification(notify)
-                    # if select.select([conn],[],[],5) == ([],[],[]):
-                    #     print "Timeout"
-                    # else:
-                    #     conn.poll()
-                    #     while conn.notifies:
-                    #         notify = conn.notifies.pop(0)
-                    #         print "Got NOTIFY:", notify.pid, notify.channel, notify.payload
 
     def send_notify_to_queue(self, queue_name: str, notifycation_type: NotificationTypeEnum, payload: str):
         with psycopg2.connect(self.dsn) as conn:
