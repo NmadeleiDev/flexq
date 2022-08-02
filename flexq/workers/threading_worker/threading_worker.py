@@ -34,7 +34,7 @@ class ThreadingWorker(WorkerBase):
 
             job = self.jobstore.get_job(job_id)
             logging.debug(f'starting job {job_id}')
-            job.result = self.executors[job_name](*job.args, **job.kwargs)
+            self._call_executor(job)
             logging.debug(f'finished job {job_id}')
 
             self.jobstore.set_status_for_job(job_id, JobStatusEnum.finished.value)

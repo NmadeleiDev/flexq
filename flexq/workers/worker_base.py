@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
-from time import time
-from typing import Union
-from typing import Callable
+from typing import Callable, Union
+from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists
+from flexq.job import Job
 from flexq.jobqueues.jobqueue_base import JobQueueBase
 from flexq.jobstores.jobstore_base import JobStoreBase
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -22,11 +21,20 @@ class WorkerBase:
 
         self.start_running_jobs_inspector()
 
-    def add_job_executor(self, name: str, cb: Callable):
+    def add_job_executor(self, name: str, cb: Union[Callable, Executor]):
         if name not in self.executors.keys():
             self.executors[name] = cb
         else:
             raise JobExecutorExists(f'Job executor name "{name}" exists. Add executor with other name.')
+
+    def _call_executor(self, job: Job):
+        executor = self.executors[job.queue_name]
+
+        if isinstance(executor, Executor):
+            executor.set_flexq_job_id(job.id)
+            job.result = executor.perform(*job.args, **job.kwargs)
+        else:
+            job.result = executor(*job.args, **job.kwargs)
 
     def wait_for_work(self):
         self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)

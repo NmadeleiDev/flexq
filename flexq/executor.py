@@ -10,3 +10,6 @@ class Executor:
             return self.job_id
         else:
             return None
+
+    def perform(self, *args, **kwargs):
+        raise NotImplemented
