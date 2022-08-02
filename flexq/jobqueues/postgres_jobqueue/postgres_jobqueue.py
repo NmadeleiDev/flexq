@@ -26,7 +26,6 @@ class PostgresJobQueue(JobQueueBase):
                 channel_name = f'{queue_name}{parts_join_char}{notification_type}'.lower()
                 curs.execute(f"LISTEN {channel_name};")
                 logging.debug(f'Listening for channel {channel_name}')
-                break
 
         while True:
             # read_c, _, exc_c = select.select([conn],[],[])
