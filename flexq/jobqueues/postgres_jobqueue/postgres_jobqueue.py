@@ -36,6 +36,7 @@ class PostgresJobQueue(JobQueueBase):
                     #         logging.debug(f"Got NOTIFY: {notify.pid}, {notify.channel}, {notify.payload}")
                     #         self._handle_notification(notify)
                     if select.select([conn],[],[],5) == ([],[],[]):
+                        conn.poll()
                         logging.debug(f'select read loop, notifies: {conn.notifies}')
                         pass
                     else:
