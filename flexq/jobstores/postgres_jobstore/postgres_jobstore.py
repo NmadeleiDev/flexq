@@ -1,4 +1,3 @@
-import logging
 from typing import List, Tuple
 from flexq.exceptions.jobstore import JobNotFoundInStore
 from flexq.job import Job, JobStatusEnum

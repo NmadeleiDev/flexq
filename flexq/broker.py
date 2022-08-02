@@ -21,5 +21,6 @@ class Broker:
     def add_job(self, queue_name: str, args: List[any] = [], kwargs: Dict[str, any] = {}) -> Job:
         job = Job(queue_name=queue_name, args=args, kwargs=kwargs)
         self._save_job_to_jobstore(job)
+        logging.debug(f'Added job: {job}')
         return job
 

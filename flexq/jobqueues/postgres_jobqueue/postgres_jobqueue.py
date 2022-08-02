@@ -55,5 +55,5 @@ class PostgresJobQueue(JobQueueBase):
         if notification_type == NotificationTypeEnum.todo:
             self.todo_callback(job_name, notification.payload)
         else:
-            logging.warn(f'Got notification, but its type is not recognized: {notification_type}, ignoring it')
+            logging.warn(f'Got notification for job "{job_name}", but its type is not recognized: {notification_type}, ignoring it')
             
