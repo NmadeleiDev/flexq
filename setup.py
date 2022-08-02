@@ -14,5 +14,5 @@ setuptools.setup(
     url='https://github.com/NmadeleiDev/flexq',
     project_urls = {},
     packages=['flexq'],
-    install_requires=['psycopg2-binary', 'pickle', 'typing', 'uuid'],
+    install_requires=['psycopg2-binary', 'uuid'],
 )
