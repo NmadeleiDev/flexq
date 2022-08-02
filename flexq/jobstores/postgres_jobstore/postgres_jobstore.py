@@ -72,7 +72,7 @@ class PostgresJobStore(JobStoreBase):
         else:
             fields_to_select = "job_queue_name, args, kwargs"
         query = f"""
-        SELECT ({fields_to_select}) FROM {schema_name}.{job_instances_table_name} WHERE id = %s
+        SELECT {fields_to_select} FROM {schema_name}.{job_instances_table_name} WHERE id = %s
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (job_id, ))
