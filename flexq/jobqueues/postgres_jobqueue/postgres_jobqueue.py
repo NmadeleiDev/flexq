@@ -22,7 +22,7 @@ class PostgresJobQueue(JobQueueBase):
             with conn.cursor() as curs:
                 for queue_name in queues_names:
                     for notification_type in NotificationTypeEnum:
-                        channel_name = f'{queue_name}{parts_join_char}{notification_type}'
+                        channel_name = f'{queue_name}{parts_join_char}{notification_type}'.lower()
                         curs.execute(f"LISTEN {channel_name}")
                         logging.debug(f'Listening for channel {channel_name}')
 
@@ -51,7 +51,7 @@ class PostgresJobQueue(JobQueueBase):
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             with conn.cursor() as curs:
-                channel_name = f'{queue_name}{parts_join_char}{notifycation_type}'
+                channel_name = f'{queue_name}{parts_join_char}{notifycation_type}'.lower()
                 curs.execute(f'NOTIFY {channel_name}, %s', (str(payload), ))
                 logging.debug(f'sent notify to channel {channel_name} with payload: {payload}')
 
