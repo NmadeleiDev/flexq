@@ -97,7 +97,7 @@ class PostgresJobStore(JobStoreBase):
 
     def get_not_acknowledged_jobs_ids_in_queues(self, queues_names: str) -> List[Tuple[str, str]]:
         query = f"""
-        SELECT id, job_queue_name FROM {schema_name}.{job_instances_table_name} as ji
+        SELECT ji.id, job_queue_name FROM {schema_name}.{job_instances_table_name} as ji
         LEFT JOIN {schema_name}.{execution_pool_table_name} as ep ON ji.id = ep.job_instance_id 
         LEFT JOIN {schema_name}.{execution_pool_table_name} as wp ON ji.start_after_job_instance_id = ep.job_instance_id 
         WHERE 
