@@ -13,6 +13,6 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url='https://github.com/NmadeleiDev/flexq',
     project_urls = {},
-    packages=['flexq'],
+    packages=['flexq', 'flexq.workers', 'flexq.workers.threading_worker', 'flexq.jobstores', 'flexq.jobstores.postgres_jobstore', 'flexq.jobqueues', 'flexq.jobqueues.postgres_jobqueue'],
     install_requires=['psycopg2-binary', 'uuid'],
 )
