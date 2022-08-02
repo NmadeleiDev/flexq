@@ -103,7 +103,7 @@ class PostgresJobStore(JobStoreBase):
         WHERE 
             ep.status IS NULL 
             AND (ji.start_after_job_instance_id IS NULL OR wp.stats = '{JobStatusEnum.finished}') 
-            AND ji.job_queue_name = ANY %s
+            AND ji.job_queue_name = ANY (%s)
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (queues_names,))
