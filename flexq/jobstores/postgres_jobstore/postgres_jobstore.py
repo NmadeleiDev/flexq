@@ -56,7 +56,7 @@ class PostgresJobStore(JobStoreBase):
             """
             with self.conn.cursor() as curs:
                 curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.start_after_job_id))
-                job.id = curs.fetchone()[0]
+                job.id = str(curs.fetchone()[0])
         else:
             query = f"""
             INSERT INTO {schema_name}.{job_instances_table_name} (id, job_queue_name, args, kwargs, start_after_job_instance_id) VALUES (%s, %s, %s, %s, %s)
