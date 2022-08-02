@@ -45,7 +45,7 @@ class PostgresJobQueue(JobQueueBase):
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             with conn.cursor() as curs:
-                curs.execute(f'NOTIFY {queue_name}{parts_join_char}{notifycation_type}, %s', (payload, ))
+                curs.execute(f'NOTIFY {queue_name}{parts_join_char}{notifycation_type}, %s', (str(payload), ))
 
     def _handle_notification(self, notification: Notify):
         name_parts = str(notification.channel).split(parts_join_char)
