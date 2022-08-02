@@ -39,7 +39,7 @@ create table if not exists {schema_name}.{execution_pool_table_name}
         constraint table_name_pk
             primary key,
     job_instance_id    int unique   not null,
-    status             {job_status_enum_name} default {JobStatusEnum.acknowledged},
+    status             {job_status_enum_name} default '{JobStatusEnum.acknowledged}',
     result             bytea default null,
 
     created_at             timestamp default now(),
