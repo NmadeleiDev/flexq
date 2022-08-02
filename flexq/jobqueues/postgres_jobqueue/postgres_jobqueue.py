@@ -7,11 +7,13 @@ from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
 
 class PostgresJobQueue(JobQueueBase):
-    def __init__(self, dsn: str, todo_callback: Union[Callable, None]=None) -> None:
-        super().__init__(todo_callback)
+    def __init__(self, dsn: str) -> None:
+        super().__init__()
         self.dsn = dsn
 
-    def subscribe_to_queues(self, queues_names: List[str]):
+    def subscribe_to_queues(self, queues_names: List[str], todo_callback: Union[Callable, None]=None):
+        self.todo_callback = todo_callback
+        
         with psycopg2.connect(self.dsn) as conn:
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
