@@ -7,8 +7,8 @@ from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
 
 class PostgresJobQueue(JobQueueBase):
-    def __init__(self, dsn: str, todo_callback: Callable, done_callback: Callable) -> None:
-        super().__init__(todo_callback, done_callback)
+    def __init__(self, dsn: str, todo_callback: Callable) -> None:
+        super().__init__(todo_callback)
         self.dsn = dsn
 
     def subscribe_to_queues(self, queues_names: List[str]):
@@ -54,8 +54,6 @@ class PostgresJobQueue(JobQueueBase):
 
         if notification_type == NotificationTypeEnum.todo:
             self.todo_callback(job_name, notification.payload)
-        elif notification_type == NotificationTypeEnum.done:
-            self.done_callback(job_name, notification.payload)
         else:
             logging.warn(f'Got notification, but its type is not recognized: {notification_type}, ignoring it')
             

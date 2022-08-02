@@ -1,10 +1,8 @@
 import logging
-from queue import Queue
-import select
 from threading import Thread
 from typing import Callable
+from flexq.exceptions.worker import RunningJobDuplicate, UnknownJobExecutor
 
-import psycopg2
 from flexq.job import JobStatusEnum
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
@@ -13,21 +11,17 @@ from flexq.workers.worker_base import WorkerBase
 
 
 class ThreadingWorker(WorkerBase):
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase) -> None:
-        self.executors = {}
-        self.running_jobs = {}
-        self.jobstore = jobstore
-        self.jobqueue = jobqueue
-
     def _todo_callback(self, job_name: str, job_id: str):
+        if job_id in self.running_jobs.keys():
+            raise RunningJobDuplicate(f'job {job_name} with id={job_id} passed to _todo_callback, but its already in self.running_jobs')
+
+        if job_name not in self.executors.keys():
+            raise UnknownJobExecutor(f'Job executor "{job_name}" is not known here')
+
+        if self.max_parallel_executors is not None and len(self.running_jobs.keys()) >= self.max_parallel_executors:
+            return
+
         job_thread = Thread(target=self._try_start_job, args=(job_name, job_id))
-
-        job_thread.start()
-
-        self.running_jobs[job_id] = job_thread
-
-    def _done_callback(self, job_name: str, job_id: str):
-        job_thread = Thread(target=self._handle_job_finished, args=(job_name, job_id))
 
         job_thread.start()
 
@@ -40,26 +34,27 @@ class ThreadingWorker(WorkerBase):
 
             job = self.jobstore.get_job(job_id)
             logging.debug(f'starting job {job_id}')
-            self.executors[job_name](*job.args, **job.kwargs)
+            job.result = self.executors[job_name](*job.args, **job.kwargs)
             logging.debug(f'finished job {job_id}')
 
             self.jobstore.set_status_for_job(job_id, JobStatusEnum.finished.value)
 
-            queue_names_waiting_for_this = self.jobstore.get_queue_names_interested_in_job(job_id)
+            if self.store_results and job.result is not None:
+                self.jobstore.save_result_for_job(job_id, job.get_result_bytes())
 
-            for queue_name in queue_names_waiting_for_this:
+            for waiting_job_id, waiting_queue_name in self.jobstore.get_waiting_for_job(job_id):
                 self.jobqueue.send_notify_to_queue(
-                    queue_name=queue_name, 
-                    notifycation_type=NotificationTypeEnum.done.value, 
-                    payload=job_id)
+                    queue_name=waiting_queue_name, 
+                    notifycation_type=NotificationTypeEnum.todo.value, 
+                    payload=waiting_job_id)
         else:
             logging.debug(f'seems like job {job_id} is already handled by other worker')
 
-    def _handle_job_finished(self, job_name: str, job_id: str):
-        
-        # проверяем, ожидает ли какая то работа завершения этой.
-        # Если да - берем эту работу и _start_job
+    def inspect_running_jobs(self):
+        for job_id, job_thread in self.running_jobs.items():
+            if not job_thread.is_alive():
+                del self.running_jobs[job_id]
 
-        jobs_waiting_for_this = self.jobstore.get_jobs_ids_in_queues_waiting_for_job(job_id, list(self.executors.keys()))
-        for job_id in jobs_waiting_for_this:
-            self._try_start_job(job_name, job_id)
+        if self.max_parallel_executors is not None and len(self.running_jobs.keys()) < self.max_parallel_executors: 
+            for waiting_job_id, waiting_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_in_queues(self.executors.keys()):
+                self._todo_callback(waiting_queue_name, waiting_job_id)

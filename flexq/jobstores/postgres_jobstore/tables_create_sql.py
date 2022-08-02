@@ -16,7 +16,9 @@ create table {schema_name}.{job_instances_table_name}
     job_queue_name    varchar   not null,
     args            bytea not null,
     kwargs          bytea not null,
-    start_after_job_instance_id     int default null
+    start_after_job_instance_id     int default null,
+
+    created_at             timestamp default now()
 )
 """
 
@@ -32,6 +34,9 @@ create table {schema_name}.{execution_pool_table_name}
             primary key,
     job_instance_id    int unique   not null,
     status             {job_status_enum_name} default {JobStatusEnum.acknowledged},
+    result             bytea default null,
+    
+    created_at             timestamp default now(),
 
     CONSTRAINT fk_{job_instances_table_name}
       FOREIGN KEY(job_instance_id) 

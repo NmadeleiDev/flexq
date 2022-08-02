@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Tuple
 from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
@@ -39,25 +39,36 @@ class PostgresJobStore(JobStoreBase):
         with self.conn.cursor() as curs:
             curs.execute(query, (status, job_id))
 
+    def save_result_for_job(self, job_id: str, result: bytes) -> None:
+        query = f"""
+        UPDATE {schema_name}.{execution_pool_table_name} SET result = %s WHERE job_instance_id = %s 
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (result, job_id))
+
     def add_job_to_queue(self, job: Job) -> str:
         if job.id is None:
             query = f"""
-            INSERT INTO {schema_name}.{job_instances_table_name} (job_queue_name, args, kwargs) VALUES (%s, %s, %s) RETURNING ID
+            INSERT INTO {schema_name}.{job_instances_table_name} (job_queue_name, args, kwargs, start_after_job_instance_id) VALUES (%s, %s, %s, %s) RETURNING ID
             """
             with self.conn.cursor() as curs:
                 curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes()))
                 job.id = curs.fetchone()[0]
         else:
             query = f"""
-            INSERT INTO {schema_name}.{job_instances_table_name} (id, job_queue_name, args, kwargs) VALUES (%s, %s, %s, %s)
+            INSERT INTO {schema_name}.{job_instances_table_name} (id, job_queue_name, args, kwargs, start_after_job_instance_id) VALUES (%s, %s, %s, %s, %s)
             """
             with self.conn.cursor() as curs:
-                curs.execute(query, (job.id, job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes()))
+                curs.execute(query, (job.id, job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.start_after_job_id))
         return job.id
 
-    def get_job(self, job_id: str) -> Job:
+    def get_job(self, job_id: str, include_result=False) -> Job:
+        if include_result:
+            fields_to_select = "job_queue_name, args, kwargs, result"
+        else:
+            fields_to_select = "job_queue_name, args, kwargs"
         query = f"""
-        SELECT (job_queue_name, args, kwargs) FROM {schema_name}.{job_instances_table_name} WHERE id = %s
+        SELECT ({fields_to_select}) FROM {schema_name}.{job_instances_table_name} WHERE id = %s
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (job_id, ))
@@ -66,26 +77,35 @@ class PostgresJobStore(JobStoreBase):
             job = Job(id=job_id, queue_name=result[0])
             job.set_args_bytes(result[1])
             job.set_kwargs_bytes(result[2])
+            if include_result:
+                job.set_result_bytes(result[3])
 
             return job
 
-    def get_jobs_ids_in_queues_waiting_for_job(self, job_id: str, queues_names: str) -> List[str]:
+    def get_waiting_for_job(self, job_id: str) -> List[Tuple[str, str]]:
         query = f"""
-        SELECT id FROM {schema_name}.{job_instances_table_name} WHERE start_after_job_instance_id = %s AND job_queue_name IN %s
-        """
-        with self.conn.cursor() as curs:
-            curs.execute(query, (job_id, queues_names))
-            result = curs.fetchmany()
-
-            return [x[0] for x in result]
-
-    def get_queue_names_interested_in_job(self, job_id: str) -> List[str]:
-        query = f"""
-        SELECT DISTINCT job_queue_name FROM {schema_name}.{job_instances_table_name} WHERE start_after_job_instance_id = %s
+        SELECT id, job_queue_name FROM {schema_name}.{job_instances_table_name} WHERE start_after_job_instance_id = %s
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (job_id, ))
             result = curs.fetchmany()
 
-            return [x[0] for x in result]
+            return [(x[0], x[1]) for x in result]
+
+    def get_not_acknowledged_jobs_ids_in_queues(self, queues_names: str) -> List[Tuple[str, str]]:
+        query = f"""
+        SELECT id, job_queue_name FROM {schema_name}.{job_instances_table_name} as ji
+        LEFT JOIN {schema_name}.{execution_pool_table_name} as ep ON ji.id = ep.job_instance_id 
+        LEFT JOIN {schema_name}.{execution_pool_table_name} as wp ON ji.start_after_job_instance_id = ep.job_instance_id 
+        WHERE 
+            ep.status IS NULL 
+            AND (ji.start_after_job_instance_id IS NULL OR wp.stats = '{JobStatusEnum.finished}') 
+            AND ji.job_queue_name IN %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (queues_names,))
+            result = curs.fetchmany()
+
+            return [(x[0], x[1]) for x in result]
+
 
