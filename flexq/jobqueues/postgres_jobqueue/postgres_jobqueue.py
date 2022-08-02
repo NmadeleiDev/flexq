@@ -13,14 +13,14 @@ class PostgresJobQueue(JobQueueBase):
 
     def subscribe_to_queues(self, queues_names: List[str], todo_callback: Union[Callable, None]=None):
         self.todo_callback = todo_callback
-        
+
         with psycopg2.connect(self.dsn) as conn:
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             with conn.cursor() as curs:
                 for queue_name in queues_names:
                     for notification_type in NotificationTypeEnum:
-                        curs.execute("LISTEN $1", (f'{queue_name}|{notification_type}',))
+                        curs.execute("LISTEN %s", (f'{queue_name}|{notification_type}',))
 
                 while True:
                     read_c, _, exc_c = select.select([conn],[],[])
