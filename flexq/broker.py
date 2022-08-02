@@ -18,7 +18,7 @@ class Broker:
         else:
             raise FailedToEnqueueJob(f'can not put job into queue, job: {job}')
 
-    def add_job(self, queue_name: str, args: List, kwargs: Dict[str, any]) -> Job:
+    def add_job(self, queue_name: str, args: List[any] = [], kwargs: Dict[str, any] = {}) -> Job:
         job = Job(queue_name=queue_name, args=args, kwargs=kwargs)
         self._save_job_to_jobstore(job)
         return job
