@@ -25,7 +25,11 @@ create table if not exists {schema_name}.{job_instances_table_name}
 """
 
 job_status_enum_create_query = f"""
-CREATE TYPE if not exists {job_status_enum_name} AS ENUM ({', '.join(map(lambda x: "'" + x + "'", JobStatusEnum))});
+DO $$ BEGIN
+    CREATE TYPE {job_status_enum_name} AS ENUM ({', '.join(map(lambda x: "'" + x + "'", JobStatusEnum))});
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 """
 
 execution_pool_table_create_query = f"""

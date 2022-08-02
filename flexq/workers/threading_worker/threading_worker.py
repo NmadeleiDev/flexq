@@ -57,4 +57,4 @@ class ThreadingWorker(WorkerBase):
 
         if self.max_parallel_executors is not None and len(self.running_jobs.keys()) < self.max_parallel_executors: 
             for waiting_job_id, waiting_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_in_queues(self.executors.keys()):
-                self._todo_callback(waiting_queue_name, waiting_job_id)
+                self._try_start_job(waiting_queue_name, waiting_job_id)
