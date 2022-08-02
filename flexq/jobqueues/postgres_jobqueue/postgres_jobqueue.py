@@ -23,8 +23,8 @@ class PostgresJobQueue(JobQueueBase):
         curs = conn.cursor()
         for queue_name in queues_names:
             for notification_type in NotificationTypeEnum:
-                channel_name = f'{queue_name}{parts_join_char}{notification_type}'.lower()
-                curs.execute(f"LISTEN {channel_name};")
+                channel_name = f'{queue_name}{parts_join_char}{notification_type}'
+                curs.execute(f'LISTEN "{channel_name}";')
                 logging.debug(f'Listening for channel {channel_name}')
 
         while True:
@@ -53,7 +53,7 @@ class PostgresJobQueue(JobQueueBase):
 
             with conn.cursor() as curs:
                 channel_name = f'{queue_name}{parts_join_char}{notifycation_type}'.lower()
-                curs.execute(f'NOTIFY {channel_name}, %s;', (str(payload), ))
+                curs.execute(f'NOTIFY "{channel_name}", %s;', (str(payload), ))
                 logging.debug(f'sent notify to channel {channel_name} with payload: {payload}')
 
     def _handle_notification(self, notification: Notify):
