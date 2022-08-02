@@ -26,11 +26,11 @@ class PostgresJobStore(JobStoreBase):
 
     def try_acknowledge_job(self, job_id: str) -> bool:
         query = f"""
-        INSERT INTO {schema_name}.{execution_pool_table_name} (job_instance_id, ) VALUES (%s,) 
+        INSERT INTO {schema_name}.{execution_pool_table_name} (job_instance_id, status) VALUES (%s,%s) 
         """
         with self.conn.cursor() as curs:
             try:
-                curs.execute(query, (job_id,))
+                curs.execute(query, (job_id, JobStatusEnum.acknowledged.value))
                 return True
             except UniqueViolation:
                 return False

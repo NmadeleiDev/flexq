@@ -13,7 +13,7 @@ job_instances_table_create_query = f"""
 create table if not exists {schema_name}.{job_instances_table_name}
 (
     id           serial
-        constraint table_name_pk
+        constraint {schema_name}_{job_instances_table_name}_pk
             primary key,
     job_queue_name    varchar   not null,
     args            bytea not null,
@@ -36,10 +36,10 @@ execution_pool_table_create_query = f"""
 create table if not exists {schema_name}.{execution_pool_table_name}
 (
     id           serial
-        constraint table_name_pk
+        constraint {schema_name}_{execution_pool_table_name}_pk
             primary key,
     job_instance_id    int unique   not null,
-    status             {job_status_enum_name} default '{JobStatusEnum.acknowledged}',
+    status             {job_status_enum_name} default '{JobStatusEnum.created}',
     result             bytea default null,
 
     created_at             timestamp default now(),
