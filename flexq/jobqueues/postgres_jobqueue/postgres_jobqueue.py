@@ -3,29 +3,26 @@ import select
 from typing import Callable, List, Union
 import psycopg2
 import psycopg2.extensions
-from psycopg2.extensions import Notify
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
 
-parts_join_char = "__"
 
 class PostgresJobQueue(JobQueueBase):
     def __init__(self, dsn: str) -> None:
         super().__init__()
         self.dsn = dsn
 
-    def subscribe_to_queues(self, queues_names: List[str], todo_callback: Union[Callable, None]=None):
-        self.todo_callback = todo_callback
-
+    def _wait_in_queues(self, queues_names: List[str]):
         conn = psycopg2.connect(self.dsn)
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
         curs = conn.cursor()
         for queue_name in queues_names:
-            for notification_type in NotificationTypeEnum:
-                channel_name = f'{queue_name}{parts_join_char}{notification_type}'
-                curs.execute(f'LISTEN "{channel_name}";')
-                logging.debug(f'Listening for channel {channel_name}')
+            channel_name = f'{queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}'
+            curs.execute(f'LISTEN "{channel_name}";')
+
+            channel_name = str(NotificationTypeEnum.abort)
+            curs.execute(f'LISTEN "{channel_name}";')
 
         while True:
             read_c, _, exc_c = select.select([conn],[],[])
@@ -39,21 +36,8 @@ class PostgresJobQueue(JobQueueBase):
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             with conn.cursor() as curs:
-                channel_name = f'{queue_name}{parts_join_char}{notifycation_type}'.lower()
+                channel_name = f'{queue_name}{self.parts_join_char}{notifycation_type}'.lower()
                 curs.execute(f'NOTIFY "{channel_name}", %s;', (str(payload), ))
                 logging.debug(f'sent notify to channel {channel_name} with payload: {payload}')
 
-    def _handle_notification(self, notification: Notify):
-        name_parts = str(notification.channel).split(parts_join_char)
-        if len(name_parts) != 2:
-            logging.warn(f'Got notification, but its channel name has unexpected format: {notification.channel}, ignoring it')
-            return
-
-        job_name = name_parts[0]
-        notification_type = name_parts[1]
-
-        if notification_type == NotificationTypeEnum.todo:
-            self.todo_callback(job_name, notification.payload)
-        else:
-            logging.warn(f'Got notification for job "{job_name}", but its type is not recognized: {notification_type}, ignoring it')
             

@@ -27,6 +27,12 @@ class ThreadingWorker(WorkerBase):
 
         self.running_jobs[job_id] = job_thread
 
+    # def _abort_callback(self, job_id: str):
+    #     if job_id in self.running_jobs.keys():
+    #         logging.debug(f'aborting job_id={job_id}')
+    #         job_thread = self.running_jobs[job_id]
+    #         if 
+
     def inspect_running_jobs(self):
         running_jobs = list(self.running_jobs.items())
         for job_id, job_thread in running_jobs:
@@ -36,4 +42,4 @@ class ThreadingWorker(WorkerBase):
         if self.max_parallel_executors is not None and len(self.running_jobs.keys()) < self.max_parallel_executors: 
             for waiting_job_id, waiting_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_in_queues(list(self.executors.keys())):
                 logging.debug(f'Trying to start job name "{waiting_queue_name}", id={waiting_job_id}')
-                self._try_start_job(waiting_job_id)
+                self._todo_callback(waiting_queue_name, waiting_job_id)

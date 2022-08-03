@@ -68,6 +68,9 @@ class WorkerBase:
     def _todo_callback(self, job_name: str, job_id: str):
         raise NotImplemented
 
+    def _abort_callback(self, job_id: str):
+        raise NotImplemented
+
     def inspect_running_jobs(self):
         raise NotImplemented
 
