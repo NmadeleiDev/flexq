@@ -21,7 +21,7 @@ class ThreadingWorker(WorkerBase):
         if self.max_parallel_executors is not None and len(self.running_jobs.keys()) >= self.max_parallel_executors:
             return
 
-        job_thread = Thread(target=self._try_start_job, args=(job_id))
+        job_thread = Thread(target=self._try_start_job, args=(job_id,))
 
         job_thread.start()
 
