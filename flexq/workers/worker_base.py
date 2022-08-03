@@ -56,7 +56,11 @@ class WorkerBase:
 
         if isinstance(executor, Executor):
             executor.set_flexq_job_id(job.id)
-            job.result = executor.perform(*job.args, **job.kwargs)
+            expected = tuple(executor.get_expected_exceptions())
+            try:
+                job.result = executor.perform(*job.args, **job.kwargs)
+            except expected as e:
+                logging.info(f'Caught exception in executor {job.queue_name}, job_id={job.id}: {e}')
         else:
             job.result = executor(*job.args, **job.kwargs)
 

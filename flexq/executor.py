@@ -1,5 +1,4 @@
-from typing import Union
-
+from typing import List, Type, Union
 
 class Executor:
     def set_flexq_job_id(self, job_id: str):
@@ -13,3 +12,6 @@ class Executor:
 
     def perform(self, *args, **kwargs):
         raise NotImplemented
+
+    def get_expected_exceptions(self) -> List[Type[Exception]]:
+        return []
