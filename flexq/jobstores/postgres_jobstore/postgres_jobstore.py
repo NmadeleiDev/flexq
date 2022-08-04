@@ -99,7 +99,7 @@ class PostgresJobStore(JobStoreBase):
         SELECT ji.id, ji.job_queue_name FROM {schema_name}.{job_instances_table_name} as ji
         LEFT JOIN {schema_name}.{job_instances_table_name} as wt ON ji.start_after_job_instance_id = wt.id
         WHERE 
-            ji.status IS 'created' 
+            ji.status = 'created' 
             AND (ji.start_after_job_instance_id IS NULL OR wt.status = '{JobStatusEnum.success}') 
             AND ji.job_queue_name = ANY (%s)
         """
