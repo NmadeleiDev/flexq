@@ -4,7 +4,6 @@ from enum import Enum
 from typing import Dict, Hashable, List, Union
 
 import pickle
-from flexq.broker import Broker
 
 from flexq.exceptions.broker import JobIdIsNone
 
@@ -55,7 +54,7 @@ class Job:
         self.result = val
 
 class JobComposite:
-    def __init__(self, *jobs: Union[Job, Pipeline, Group], start_after_job_id: Union[str, None]=None, id=None, broker_for_automatic_registering: Union[Broker, None]=None) -> None:
+    def __init__(self, *jobs: Union[Job, Pipeline, Group], start_after_job_id: Union[str, None]=None, id=None, broker_for_automatic_registering=None) -> None:
         self.start_after_job_id = start_after_job_id
         self.queue_name = self.internal_queue_name
         self.id = id
@@ -66,7 +65,7 @@ class JobComposite:
         self.args = []
         for job in jobs:
             if job.id is None:
-                if isinstance(self.broker_for_automatic_registering, Broker):
+                if hasattr(self.broker_for_automatic_registering, 'register_job'):
                     self.broker_for_automatic_registering.register_job(job)
                 else:
                     raise JobIdIsNone(f'Job passed to {type(self).__name__} must be regitered (i.e. have an id) or broker_for_automatic_registering must be passed, which is not the case with job name = {job.queue_name}')
