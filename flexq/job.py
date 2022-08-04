@@ -1,12 +1,12 @@
+from __future__ import annotations
+
 from enum import Enum
 from typing import Dict, Hashable, List, Union
-from __future__ import annotations
 
 import pickle
 from flexq.broker import Broker
 
 from flexq.exceptions.broker import JobIdIsNone
-from flexq.jobstores.jobstore_base import JobStoreBase
 
 
 class JobStatusEnum(str, Enum):
