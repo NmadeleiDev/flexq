@@ -46,8 +46,11 @@ class WorkerBase:
                             payload=ingroup_job.id)
                     elif ingroup_job.status == JobStatusEnum.success:
                         successfull_jobs_count += 1
+                    elif ingroup_job.status == JobStatusEnum.failed:
+                        self.jobstore.set_status_for_job(job.id, JobStatusEnum.failed.value)
 
                 if successfull_jobs_count == len(job.args):
+                    self.jobstore.set_status_for_job(job.id, JobStatusEnum.success.value)
                     self.notify_jobs_waiting_for_this(job.id)
 
             elif job.queue_name == Pipeline.internal_queue_name:
@@ -63,10 +66,13 @@ class WorkerBase:
                             queue_name=inpipe_job.queue_name, 
                             notifycation_type=NotificationTypeEnum.todo.value, 
                             payload=inpipe_job.id)
+                    elif inpipe_job.status == JobStatusEnum.failed:
+                        self.jobstore.set_status_for_job(job.id, JobStatusEnum.failed.value)
                     else:
                         break
 
                 if successfull_jobs_count == len(job.args):
+                    self.jobstore.set_status_for_job(job.id, JobStatusEnum.success.value)
                     self.notify_jobs_waiting_for_this(job.id)
 
             else:
