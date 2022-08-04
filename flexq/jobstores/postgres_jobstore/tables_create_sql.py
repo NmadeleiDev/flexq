@@ -19,6 +19,7 @@ create table if not exists {schema_name}.{job_instances_table_name}
     args            bytea not null,
     kwargs          bytea not null,
     start_after_job_instance_id     int default null,
+    result             bytea default null,
 
     status             {job_status_enum_name} default '{JobStatusEnum.created}',
 
