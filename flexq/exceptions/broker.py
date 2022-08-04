@@ -3,3 +3,6 @@ class BrokerException(Exception):
 
 class FailedToEnqueueJob(BrokerException):
     pass
+
+class JobIdIsNone(BrokerException):
+    pass

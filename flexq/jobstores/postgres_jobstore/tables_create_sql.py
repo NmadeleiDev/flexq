@@ -5,7 +5,7 @@ schema_name = 'flexq'
 queues_table_name = 'flexq_queue'
 job_instances_table_name = 'flexq_job'
 job_status_enum_name = 'flexq_job_status'
-execution_pool_table_name = 'flexq_execution_pool'
+job_results_table = 'flexq_job_result'
 
 schema_create_query = f"""CREATE SCHEMA IF NOT EXISTS {schema_name}"""
 
@@ -20,6 +20,8 @@ create table if not exists {schema_name}.{job_instances_table_name}
     kwargs          bytea not null,
     start_after_job_instance_id     int default null,
 
+    status             {job_status_enum_name} default '{JobStatusEnum.created}',
+
     created_at             timestamp default now()
 )
 """
@@ -32,20 +34,17 @@ EXCEPTION
 END $$;
 """
 
-execution_pool_table_create_query = f"""
-create table if not exists {schema_name}.{execution_pool_table_name}
+job_results_table_create_query = f"""
+create table if not exists {schema_name}.{job_results_table}
 (
-    id           serial
-        constraint {schema_name}_{execution_pool_table_name}_pk
+    job_id           integer
+        constraint {schema_name}_{job_results_table}_pk
             primary key,
-    job_instance_id    int unique   not null,
-    status             {job_status_enum_name} default '{JobStatusEnum.created}',
     result             bytea default null,
+    
 
-    created_at             timestamp default now(),
-
-    CONSTRAINT fk_{job_instances_table_name}
-      FOREIGN KEY(job_instance_id) 
+    CONSTRAINT fk_{job_results_table}
+      FOREIGN KEY(job_id) 
 	  REFERENCES {schema_name}.{job_instances_table_name}(id)
       ON DELETE CASCADE
 )

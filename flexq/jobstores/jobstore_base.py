@@ -19,7 +19,7 @@ class JobStoreBase:
         raise NotImplemented
 
     # вызывается брокером при добавлении задачи клиентом
-    def add_job_to_queue(self, job: Job) -> bool:
+    def add_job_to_store(self, job: Job) -> bool:
         raise NotImplemented
 
     def get_job(self, job_id: str, include_result=False) -> Job:
