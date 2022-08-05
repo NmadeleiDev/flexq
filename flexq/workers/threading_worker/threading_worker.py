@@ -16,7 +16,7 @@ class ThreadingWorker(WorkerBase):
             raise RunningJobDuplicate(f'job {job_name} with id={job_id} passed to _todo_callback, but its already in self.running_jobs')
 
         if job_name not in self.executors.keys():
-            if job_name not in (Pipeline.internal_queue_name, Group.internal_queue_name):
+            if job_name not in (Pipeline.queue_name, Group.queue_name):
                 raise UnknownJobExecutor(f'Job executor "{job_name}" is not known here')
         else:
             if self.max_parallel_executors is not None and len(self.running_jobs.keys()) >= self.max_parallel_executors:

@@ -67,6 +67,13 @@ class PostgresJobStore(JobStoreBase):
                 curs.execute(query, (job.id, job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id))
         return job.id
 
+    def update_job_in_store(self, job: Job) -> str:
+        query = f"""
+        UPDATE {schema_name}.{job_instances_table_name} SET (job_queue_name, args, kwargs, parent_job_id) = (%s, %s, %s, %s) WHERE id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.id))
+
     def get_job(self, job_id: str, include_result=False) -> Job:
         fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id"
 
