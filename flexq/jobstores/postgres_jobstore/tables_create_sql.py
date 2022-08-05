@@ -24,7 +24,7 @@ create table if not exists {schema_name}.{job_instances_table_name}
     status             {job_status_enum_name} default '{JobStatusEnum.created}',
 
     created_at             timestamp default now(),
-    finished_at             timestamp default null,
+    finished_at             timestamp default null
 )
 """
 
