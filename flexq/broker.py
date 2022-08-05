@@ -17,7 +17,8 @@ class Broker:
         return self.add_job(job)
 
     def add_job(self, job: Union[Job, Group, Pipeline]) -> Job:
-        return self.launch_job(self.register_job(job))
+        self.launch_job(self.register_job(job))
+        return job
 
     def register_job(self, job: Union[Job, Group, Pipeline]) -> Job:
         if self.jobstore.add_job_to_store(job):
