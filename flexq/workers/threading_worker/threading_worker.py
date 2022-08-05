@@ -44,5 +44,5 @@ class ThreadingWorker(WorkerBase):
 
         if self.max_parallel_executors is not None and len(self.running_jobs.keys()) < self.max_parallel_executors: 
             for waiting_job_id, waiting_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_in_queues(list(self.executors.keys()) + generic_queue_names):
-                logging.debug(f'Trying to start job name "{waiting_queue_name}", id={waiting_job_id}')
+                logging.debug(f'calling _todo_callback for job name "{waiting_queue_name}", id={waiting_job_id}')
                 self._todo_callback(waiting_queue_name, waiting_job_id)

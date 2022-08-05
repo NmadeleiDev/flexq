@@ -116,7 +116,7 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (queues_names,))
-            result = curs.fetchmany()
+            result = curs.fetchall()
 
             return [(x[0], x[1]) for x in result]
 
