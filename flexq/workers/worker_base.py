@@ -1,4 +1,5 @@
 import logging
+from signal import raise_signal
 from typing import Callable, Union
 from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor
@@ -124,7 +125,8 @@ class WorkerBase:
         except Exception as e:
             logging.info(f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}')
             job.status = JobStatusEnum.failed.value
-            
+            raise e
+
         logging.debug(f'finished job {job.id} with status: {job.status}')
 
     def wait_for_work(self):
