@@ -16,7 +16,7 @@ class JobStatusEnum(str, Enum):
 
 
 class Job:
-    def __init__(self, queue_name: str, args: List = [], kwargs: Dict[str, Hashable] = {}, id=None, status=JobStatusEnum.created.value, result=any, start_after_job_id: Union[str, None]=None) -> None:
+    def __init__(self, queue_name: str, args: List = [], kwargs: Dict[str, Hashable] = {}, id=None, status=JobStatusEnum.created.value, result=any, parent_job_id: Union[str, None]=None) -> None:
         self.queue_name = queue_name
         self.args = args
         self.kwargs = kwargs
@@ -26,7 +26,7 @@ class Job:
 
         self.result = result
 
-        self.start_after_job_id = start_after_job_id
+        self.parent_job_id = parent_job_id
 
     def get_args_bytes(self) -> bytes:
         return pickle.dumps(self.args)
@@ -54,9 +54,10 @@ class Job:
         self.result = val
 
 class JobComposite:
-    def __init__(self, *jobs: Union[Job, Pipeline, Group], start_after_job_id: Union[str, None]=None, id=None, broker_for_automatic_registering=None) -> None:
-        self.start_after_job_id = start_after_job_id
-        self.queue_name = self.internal_queue_name
+    queue_name = '_flexq_job_composite'
+
+    def __init__(self, *jobs: Union[Job, Pipeline, Group], parent_job_id: Union[str, None]=None, id=None, broker_for_automatic_registering=None) -> None:
+        self.parent_job_id = parent_job_id
         self.id = id
 
         self.broker_for_automatic_registering = broker_for_automatic_registering
@@ -64,6 +65,7 @@ class JobComposite:
         self.kwargs = {}
         self.args = []
         for job in jobs:
+            job.parent_job_id = self.id # чтобы scheduler не начинал самостоятельно эти работы
             if job.id is None:
                 if hasattr(self.broker_for_automatic_registering, 'register_job'):
                     self.broker_for_automatic_registering.register_job(job)
@@ -73,7 +75,7 @@ class JobComposite:
             self.args.append(job.id)
 
 class Group(JobComposite, Job):
-    internal_queue_name = '_flexq_group'
+    queue_name = '_flexq_group'
 
 class Pipeline(JobComposite, Job):
-    internal_queue_name = '_flexq_pipeline'
+    queue_name = '_flexq_pipeline'

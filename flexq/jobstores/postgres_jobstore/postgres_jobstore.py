@@ -25,16 +25,22 @@ class PostgresJobStore(JobStoreBase):
 
     def try_acknowledge_job(self, job_id: str) -> bool:
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET status = %s WHERE id = %s 
+        UPDATE {schema_name}.{job_instances_table_name} SET status = %s 
+        WHERE id = %s AND status = %s
         """
         with self.conn.cursor() as curs:
-            curs.execute(query, (JobStatusEnum.acknowledged.value, job_id))
+            curs.execute(query, (JobStatusEnum.acknowledged.value, job_id, JobStatusEnum.created.value))
             return curs.rowcount == 1 # TODO: протестить, что rowcount == 1 всегда только в одном вызове
 
     def set_status_for_job(self, job_id: str, status: JobStatusEnum) -> None:
-        query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET status = %s WHERE id = %s 
-        """
+        if status in (JobStatusEnum.success.value, JobStatusEnum.failed.value):
+            query = f"""
+            UPDATE {schema_name}.{job_instances_table_name} SET status = %s, finished_at = now() WHERE id = %s 
+            """
+        else:
+            query = f"""
+            UPDATE {schema_name}.{job_instances_table_name} SET status = %s WHERE id = %s 
+            """
         with self.conn.cursor() as curs:
             curs.execute(query, (status, job_id))
 
@@ -48,24 +54,25 @@ class PostgresJobStore(JobStoreBase):
     def add_job_to_store(self, job: Job) -> str:
         if job.id is None:
             query = f"""
-            INSERT INTO {schema_name}.{job_instances_table_name} (job_queue_name, args, kwargs, start_after_job_instance_id) VALUES (%s, %s, %s, %s) RETURNING ID
+            INSERT INTO {schema_name}.{job_instances_table_name} (job_queue_name, args, kwargs, parent_job_id) VALUES (%s, %s, %s, %s) RETURNING ID
             """
             with self.conn.cursor() as curs:
-                curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.start_after_job_id))
+                curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id))
                 job.id = str(curs.fetchone()[0])
         else:
             query = f"""
-            INSERT INTO {schema_name}.{job_instances_table_name} (id, job_queue_name, args, kwargs, start_after_job_instance_id) VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO {schema_name}.{job_instances_table_name} (id, job_queue_name, args, kwargs, parent_job_id) VALUES (%s, %s, %s, %s, %s)
             """
             with self.conn.cursor() as curs:
-                curs.execute(query, (job.id, job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.start_after_job_id))
+                curs.execute(query, (job.id, job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id))
         return job.id
 
     def get_job(self, job_id: str, include_result=False) -> Job:
+        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id"
+
         if include_result:
-            fields_to_select = "job_queue_name, args, kwargs, status, result"
-        else:
-            fields_to_select = "job_queue_name, args, kwargs, status"
+            fields_to_select += ", result"
+
         query = f"""
         SELECT {fields_to_select} FROM {schema_name}.{job_instances_table_name} WHERE id = %s
         """
@@ -76,32 +83,21 @@ class PostgresJobStore(JobStoreBase):
             if result is None:
                 raise JobNotFoundInStore(f'Job id = {job_id} not found in store')
 
-            job = Job(id=job_id, queue_name=result[0], status=result[3])
+            job = Job(id=job_id, queue_name=result[0], status=result[3], parent_job_id=result[4])
             job.set_args_bytes(result[1])
             job.set_kwargs_bytes(result[2])
             if include_result:
-                job.set_result_bytes(result[4])
+                job.set_result_bytes(result[5])
 
             return job
 
-    def get_waiting_for_job(self, job_id: str) -> List[Tuple[str, str]]:
-        query = f"""
-        SELECT id, job_queue_name FROM {schema_name}.{job_instances_table_name} WHERE start_after_job_instance_id = %s
-        """
-        with self.conn.cursor() as curs:
-            curs.execute(query, (job_id, ))
-            result = curs.fetchmany()
-
-            return [(x[0], x[1]) for x in result]
-
     def get_not_acknowledged_jobs_ids_in_queues(self, queues_names: str) -> List[Tuple[str, str]]:
         query = f"""
-        SELECT ji.id, ji.job_queue_name FROM {schema_name}.{job_instances_table_name} as ji
-        LEFT JOIN {schema_name}.{job_instances_table_name} as wt ON ji.start_after_job_instance_id = wt.id
+        SELECT id, job_queue_name FROM {schema_name}.{job_instances_table_name}
         WHERE 
-            ji.status = 'created' 
-            AND (ji.start_after_job_instance_id IS NULL OR wt.status = '{JobStatusEnum.success}') 
-            AND ji.job_queue_name = ANY (%s)
+            status = 'created' 
+            AND parent_job_id IS NULL 
+            AND job_queue_name = ANY (%s)
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (queues_names,))

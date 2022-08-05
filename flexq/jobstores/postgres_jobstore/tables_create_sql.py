@@ -18,12 +18,13 @@ create table if not exists {schema_name}.{job_instances_table_name}
     job_queue_name    varchar   not null,
     args            bytea not null,
     kwargs          bytea not null,
-    start_after_job_instance_id     int default null,
+    parent_job_id     int default null,
     result             bytea default null,
 
     status             {job_status_enum_name} default '{JobStatusEnum.created}',
 
-    created_at             timestamp default now()
+    created_at             timestamp default now(),
+    finished_at             timestamp default null,
 )
 """
 

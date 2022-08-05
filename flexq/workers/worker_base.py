@@ -1,8 +1,8 @@
 import logging
 from typing import Callable, Union
 from flexq.executor import Executor
-from flexq.exceptions.worker import JobExecutorExists
-from flexq.job import Group, Job, JobStatusEnum, Pipeline
+from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor
+from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -28,13 +28,12 @@ class WorkerBase:
         else:
             raise JobExecutorExists(f'Job executor name "{name}" exists. Add executor with other name.')
 
-    def _try_start_job(self, job_id: str):
+    def _try_start_job(self, job_name: str, job_id: str):
         # пытаемся добавить работу в poll - есть успешно добавлась (т.е. ее там еще не было) , начинаем выполнять
-        if self.jobstore.try_acknowledge_job(job_id):
-            
+        if job_name in (JobComposite.queue_name, Group.queue_name, Pipeline.queue_name):
             job = self.jobstore.get_job(job_id)
 
-            if job.queue_name == Group.internal_queue_name:
+            if job.queue_name == Group.queue_name:
                 successfull_jobs_count = 0
 
                 for ingroup_job_id in job.args:
@@ -47,13 +46,14 @@ class WorkerBase:
                     elif ingroup_job.status == JobStatusEnum.success:
                         successfull_jobs_count += 1
                     elif ingroup_job.status == JobStatusEnum.failed:
-                        self.jobstore.set_status_for_job(job.id, JobStatusEnum.failed.value)
+                        job.status = JobStatusEnum.failed.value
+                        self.jobstore.set_status_for_job(job.id, job.status)
 
                 if successfull_jobs_count == len(job.args):
-                    self.jobstore.set_status_for_job(job.id, JobStatusEnum.success.value)
-                    self.notify_jobs_waiting_for_this(job.id)
+                    job.status = JobStatusEnum.success.value
+                    self.jobstore.set_status_for_job(job.id, job.status)
 
-            elif job.queue_name == Pipeline.internal_queue_name:
+            elif job.queue_name == Pipeline.queue_name:
                 successfull_jobs_count = 0
 
                 for inpipe_job_id in job.args: # но по порядку
@@ -67,33 +67,40 @@ class WorkerBase:
                             notifycation_type=NotificationTypeEnum.todo.value, 
                             payload=inpipe_job.id)
                     elif inpipe_job.status == JobStatusEnum.failed:
-                        self.jobstore.set_status_for_job(job.id, JobStatusEnum.failed.value)
-                    else:
-                        break
+                        job.status = JobStatusEnum.failed.value
+                        self.jobstore.set_status_for_job(job.id, job.status)
+                    elif inpipe_job.status == JobStatusEnum.acknowledged:
+                        pass                
+                    break
 
                 if successfull_jobs_count == len(job.args):
-                    self.jobstore.set_status_for_job(job.id, JobStatusEnum.success.value)
-                    self.notify_jobs_waiting_for_this(job.id)
-
+                    job.status = JobStatusEnum.success.value
+                    self.jobstore.set_status_for_job(job.id, job.status)
             else:
-                self._call_executor(job)
+                raise UnknownJobExecutor(f'Unknown composite type: {job.queue_name}')
 
-                self.jobstore.set_status_for_job(job_id, job.status)
+        elif self.jobstore.try_acknowledge_job(job_id):
+            logging.debug(f'Acknowledged job_id={job_id}')
+            
+            job = self.jobstore.get_job(job_id)
 
-                if job.status == JobStatusEnum.success:
-                    if self.store_results and job.result is not None:
-                        self.jobstore.save_result_for_job(job_id, job.get_result_bytes())
+            self._call_executor(job)
 
-                    self.notify_jobs_waiting_for_this(job.id)
+            self.jobstore.set_status_for_job(job_id, job.status)
+
+            if job.status == JobStatusEnum.success:
+                if self.store_results and job.result is not None:
+                    self.jobstore.save_result_for_job(job_id, job.get_result_bytes())
+
         else:
             logging.debug(f'seems like job {job_id} is already handled by other worker')
+            return
 
-    def notify_jobs_waiting_for_this(self, job_id: str):
-        for waiting_job_id, waiting_queue_name in self.jobstore.get_waiting_for_job(job_id):
+        if job.parent_job_id is not None:
             self.jobqueue.send_notify_to_queue(
-                queue_name=waiting_queue_name, 
-                notifycation_type=NotificationTypeEnum.todo.value, 
-                payload=waiting_job_id)
+            queue_name=JobComposite.queue_name, 
+            notifycation_type=NotificationTypeEnum.todo.value, 
+            payload=job.parent_job_id)
 
     def _call_executor(self, job: Job):
         executor = self.executors[job.queue_name]
@@ -107,7 +114,7 @@ class WorkerBase:
                 try:
                     job.result = executor.perform(*job.args, **job.kwargs)
                 except expected as e:
-                    logging.info(f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}')
+                    logging.info(f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:{type(e).__name__}: {e}')
             else:
                 job.result = executor(*job.args, **job.kwargs)
 

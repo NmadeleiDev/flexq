@@ -28,7 +28,3 @@ class JobStoreBase:
     # вызывается воркером в inspect_running_jobs если есть возможность взять еще задачи
     def get_not_acknowledged_jobs_ids_in_queues(self, queues_names: str) -> List[Tuple[str, str]]:
         raise NotImplemented
-
-    # вызывается воркером после заверешния работы, чтобы вызвать другие работу, ожиадющие завершенной
-    def get_waiting_for_job(self, job_id: str) -> List[Tuple[str, str]]:
-        raise NotImplemented
