@@ -3,6 +3,7 @@ import select
 from typing import Callable, List, Union
 import psycopg2
 import psycopg2.extensions
+from flexq.job import Group, JobComposite, Pipeline
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
 
@@ -24,6 +25,10 @@ class PostgresJobQueue(JobQueueBase):
             channel_name = str(NotificationTypeEnum.abort)
             curs.execute(f'LISTEN "{channel_name}";')
 
+        curs.execute(f'LISTEN "{JobComposite.queue_name}";')
+        curs.execute(f'LISTEN "{Group.queue_name}";')
+        curs.execute(f'LISTEN "{Pipeline.queue_name}";')
+        
         while True:
             read_c, _, exc_c = select.select([conn],[],[])
             conn.poll()
