@@ -76,7 +76,7 @@ class PostgresJobStore(JobStoreBase):
 
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         query = f"""
-        SELECT id FROM {schema_name}.{job_instances_table_name} WHERE parent_job_id = %s
+        SELECT id FROM {schema_name}.{job_instances_table_name} WHERE parent_job_id = %s ORDER BY id
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (parent_job_id,))
