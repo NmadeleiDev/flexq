@@ -25,6 +25,9 @@ class JobStoreBase:
     def update_job_in_store(self, job: Job):
         raise NotImplemented
 
+    def get_child_job_ids(self, parent_job_id: str) -> List[str]:
+        raise NotImplemented
+
     def get_job(self, job_id: str, include_result=False) -> Job:
         raise NotImplemented
 

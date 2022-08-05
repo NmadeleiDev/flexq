@@ -35,8 +35,9 @@ class WorkerBase:
 
             if job.queue_name == Group.queue_name:
                 successfull_jobs_count = 0
+                child_jobs = self.jobstore.get_child_job_ids(job.id)
 
-                for ingroup_job_id in job.args:
+                for ingroup_job_id in child_jobs:
                     ingroup_job = self.jobstore.get_job(ingroup_job_id)
                     if ingroup_job.status == JobStatusEnum.created:
                         self.jobqueue.send_notify_to_queue(
@@ -49,14 +50,15 @@ class WorkerBase:
                         job.status = JobStatusEnum.failed.value
                         self.jobstore.set_status_for_job(job.id, job.status)
 
-                if successfull_jobs_count == len(job.args):
+                if successfull_jobs_count == len(child_jobs):
                     job.status = JobStatusEnum.success.value
                     self.jobstore.set_status_for_job(job.id, job.status)
 
             elif job.queue_name == Pipeline.queue_name:
                 successfull_jobs_count = 0
+                child_jobs = self.jobstore.get_child_job_ids(job.id)
 
-                for inpipe_job_id in job.args: # но по порядку
+                for inpipe_job_id in child_jobs: # но по порядку
                     inpipe_job = self.jobstore.get_job(inpipe_job_id)
                     if inpipe_job.status == JobStatusEnum.success:
                         successfull_jobs_count += 1
@@ -73,7 +75,7 @@ class WorkerBase:
                         pass                
                     break
 
-                if successfull_jobs_count == len(job.args):
+                if successfull_jobs_count == len(child_jobs):
                     job.status = JobStatusEnum.success.value
                     self.jobstore.set_status_for_job(job.id, job.status)
             else:

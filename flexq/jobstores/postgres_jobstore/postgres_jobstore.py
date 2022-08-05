@@ -74,6 +74,14 @@ class PostgresJobStore(JobStoreBase):
         with self.conn.cursor() as curs:
             curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.id))
 
+    def get_child_job_ids(self, parent_job_id: str) -> List[str]:
+        query = f"""
+        SELECT id FROM {schema_name}.{job_instances_table_name} WHERE parent_job_id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (parent_job_id,))
+            return [x[0] for x in curs.fetchall()]
+
     def get_job(self, job_id: str, include_result=False) -> Job:
         fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id"
 

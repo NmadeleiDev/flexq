@@ -64,7 +64,7 @@ class JobComposite:
 
         self.kwargs = {}
         self.args = []
-        self.broker_for_automatic_registering.jobstore.add_job_to_store(self)
+        self.broker_for_automatic_registering.register_job(self)
         for job in jobs:
             job.parent_job_id = self.id # чтобы scheduler не начинал самостоятельно эти работы
             if job.id is None:
@@ -74,7 +74,7 @@ class JobComposite:
                     raise JobIdIsNone(f'Job passed to {type(self).__name__} must be regitered (i.e. have an id) or broker_for_automatic_registering must be passed, which is not the case with job name = {job.queue_name}')
 
             self.args.append(job.id)
-        self.broker_for_automatic_registering.jobstore.update_job_in_store(self)
+        # self.broker_for_automatic_registering.jobstore.update_job_in_store(self)
 
 class Group(JobComposite, Job):
     queue_name = '_flexq_group'
