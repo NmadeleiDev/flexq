@@ -4,7 +4,9 @@ from typing import Callable, List, Union
 import psycopg2
 import psycopg2.extensions
 from flexq.job import Group, JobComposite, Pipeline
-from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
+from flexq.jobqueues.jobqueue_base import JobQueueBase
+from flexq.jobqueues.notification import NotificationTypeEnum
+
 
 from psycopg2.extensions import Notify
 

@@ -1,9 +1,9 @@
-import logging
 from typing import Dict, List, Tuple, Union
 from flexq.exceptions.broker import FailedToEnqueueJob
 
 from flexq.job import Group, Job, Pipeline
-from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
+from flexq.jobqueues.jobqueue_base import JobQueueBase
+from flexq.jobqueues.notification import NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 
 

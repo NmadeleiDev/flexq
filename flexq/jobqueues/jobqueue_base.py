@@ -1,13 +1,6 @@
-from enum import Enum
 import logging
 from typing import Callable, List, Union
-from flexq.job import Job
-from flexq.jobqueues.notification import Notification
-
-class NotificationTypeEnum(str, Enum):
-    todo = 'todo'
-    done = 'done'
-    abort = 'abort'
+from flexq.jobqueues.notification import Notification, NotificationTypeEnum
 
 class JobQueueBase:
     parts_join_char = "__"

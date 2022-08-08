@@ -4,9 +4,7 @@ from typing import Callable
 from flexq.exceptions.worker import RunningJobDuplicate, UnknownJobExecutor
 
 from flexq.job import JobStatusEnum, Pipeline, Group
-from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
-from flexq.jobstores.jobstore_base import JobStoreBase
 from flexq.workers.worker_base import WorkerBase
 
 
