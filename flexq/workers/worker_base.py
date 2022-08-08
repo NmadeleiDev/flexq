@@ -111,7 +111,8 @@ class WorkerBase:
         logging.debug(f'starting job {job.id}')
 
         try:
-            if isinstance(executor, Executor):
+            if isinstance(executor, type(Executor)):
+                executor = executor()
                 executor.set_flexq_job_id(job.id)
                 expected = tuple(executor.get_expected_exceptions())
                 try:
