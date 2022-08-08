@@ -2,7 +2,7 @@ from enum import Enum
 import logging
 from typing import Callable, List, Union
 from flexq.job import Job
-from psycopg2.extensions import Notify
+from flexq.jobqueues.notification import Notification
 
 class NotificationTypeEnum(str, Enum):
     todo = 'todo'
@@ -29,20 +29,10 @@ class JobQueueBase:
     def send_notify_to_queue(self, queue_name: str, notifycation_type: NotificationTypeEnum, payload: str):
         raise NotImplemented
 
-    def _handle_notification(self, notification: Notify):
-        if notification.channel == NotificationTypeEnum.abort:
-            self.abort_callback(notification.payload)
-            return
+    def _handle_notification(self, notification: Notification):
+        logging.debug(f'got notification: {str(notification)}')
 
-        name_parts = str(notification.channel).split(self.parts_join_char)
-        if len(name_parts) != 2:
-            logging.warn(f'Got notification, but its channel name has unexpected format: {notification.channel}, ignoring it')
-            return
-
-        job_name = name_parts[0]
-        notification_type = name_parts[1]
-
-        if notification_type == NotificationTypeEnum.todo:
-            self.todo_callback(job_name, notification.payload)
+        if notification.notification_type == NotificationTypeEnum.todo:
+            self.todo_callback(notification.job_name, notification.job_id)
         else:
-            logging.warn(f'Got notification for job "{job_name}", but its type is not recognized: {notification_type}, ignoring it')
+            logging.warn(f'Got notification for job "{notification.job_name}", but its type is not recognized: {notification.notification_type}, ignoring it')

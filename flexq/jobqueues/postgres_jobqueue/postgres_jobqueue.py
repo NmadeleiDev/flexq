@@ -6,6 +6,10 @@ import psycopg2.extensions
 from flexq.job import Group, JobComposite, Pipeline
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 
+from psycopg2.extensions import Notify
+
+from flexq.jobqueues.notification import Notification
+
 
 
 class PostgresJobQueue(JobQueueBase):
@@ -30,11 +34,26 @@ class PostgresJobQueue(JobQueueBase):
         curs.execute(f'LISTEN "{Pipeline.queue_name}";')
         
         while True:
-            read_c, _, exc_c = select.select([conn],[],[])
-            conn.poll()
-            while conn.notifies:
-                notify = conn.notifies.pop(0)
-                self._handle_notification(notify)
+            if select.select([conn],[],[],10) != ([],[],[]):
+                conn.poll()
+                while conn.notifies:
+                    notify = conn.notifies.pop(0)
+                    self._handle_notification(self.parse_notification(notify))
+
+    def parse_notification(self, notification: Notify) -> Notification:
+        if notification.channel == NotificationTypeEnum.abort:
+            self.abort_callback(notification.payload)
+            return
+
+        name_parts = str(notification.channel).split(self.parts_join_char)
+        if len(name_parts) != 2:
+            logging.warn(f'Got notification, but its channel name has unexpected format: {notification.channel}, ignoring it')
+            return
+
+        job_name = name_parts[0]
+        notification_type = name_parts[1]
+
+        return Notification(notification_type, job_name, notification.payload)
 
     def send_notify_to_queue(self, queue_name: str, notifycation_type: NotificationTypeEnum, payload: str):
         with psycopg2.connect(self.dsn) as conn:
