@@ -25,12 +25,15 @@ class JobStoreBase:
     def update_job_in_store(self, job: Job):
         raise NotImplemented
 
+    def remove_job_from_store(self, job_id: str):
+        raise NotImplemented
+
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         raise NotImplemented
 
     def get_job(self, job_id: str, include_result=False) -> Job:
         raise NotImplemented
 
-    # вызывается воркером в inspect_running_jobs если есть возможность взять еще задачи
-    def get_not_acknowledged_jobs_ids_in_queues(self, queues_names: str) -> List[Tuple[str, str]]:
+    def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         raise NotImplemented
+

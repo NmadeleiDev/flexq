@@ -1,11 +1,16 @@
-from flexq.job import Job, JobStatusEnum
+from flexq.job import Job, JobIntervalNameEnum, JobStatusEnum
 
 schema_name = 'flexq'
 
 queues_table_name = 'flexq_queue'
 job_instances_table_name = 'flexq_job'
 job_status_enum_name = 'flexq_job_status'
+
+job_scheduling_table_name = 'flexq_job_schedule'
+interval_name_enum_name = 'flexq_interval_name'
+
 job_results_table = 'flexq_job_result'
+
 
 schema_create_query = f"""CREATE SCHEMA IF NOT EXISTS {schema_name}"""
 
@@ -20,6 +25,10 @@ create table if not exists {schema_name}.{job_instances_table_name}
     kwargs          bytea not null,
     parent_job_id     int default null,
     result             bytea default null,
+    retry_until_success             boolean default false,
+    retry_delay_minutes               integer default 0,
+
+    name varchar default null,
 
     status             {job_status_enum_name} default '{JobStatusEnum.created}',
 
@@ -27,6 +36,7 @@ create table if not exists {schema_name}.{job_instances_table_name}
     finished_at             timestamp default null
 )
 """
+
 
 job_status_enum_create_query = f"""
 DO $$ BEGIN

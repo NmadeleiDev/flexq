@@ -14,9 +14,31 @@ class JobStatusEnum(str, Enum):
     success = 'success'
     failed = 'failed'
 
+class JobIntervalNameEnum(str, Enum):
+    hours = 'hours'
+    minutes = 'minutes'
+    seconds = 'seconds'
+
 
 class Job:
-    def __init__(self, queue_name: str, args: List = [], kwargs: Dict[str, Hashable] = {}, id=None, status=JobStatusEnum.created.value, result=any, parent_job_id: Union[str, None]=None) -> None:
+    def __init__(self, 
+            queue_name: str, 
+            args: List = [], 
+            kwargs: Dict[str, Hashable] = {}, 
+            id=None, 
+            status=JobStatusEnum.created.value, 
+            result=any, 
+            parent_job_id: Union[str, None]=None,
+            cron: Union[str, None] = None,
+            interval_name: Union[JobIntervalNameEnum, None] = None,
+            interval_value: int = 0,
+
+            retry_until_success=False,
+            retry_delay_minutes=0,
+
+            name=None,
+
+            ) -> None:
         self.queue_name = queue_name
         self.args = args
         self.kwargs = kwargs
@@ -27,6 +49,15 @@ class Job:
         self.result = result
 
         self.parent_job_id = parent_job_id
+        
+        self.cron = cron
+        self.interval_name = interval_name
+        self.interval_value = interval_value
+
+        self.retry_until_success = retry_until_success
+        self.retry_delay_minutes = retry_delay_minutes
+
+        self.name = name
 
     def get_args_bytes(self) -> bytes:
         return pickle.dumps(self.args)
@@ -52,6 +83,9 @@ class Job:
     def set_result_bytes(self, val: bytes):
         val = pickle.loads(val)
         self.result = val
+
+    def __str__(self) -> str:
+        return f'job_name={self.queue_name}, job_id={self.id}'
 
 class JobComposite:
     queue_name = '_flexq_job_composite'

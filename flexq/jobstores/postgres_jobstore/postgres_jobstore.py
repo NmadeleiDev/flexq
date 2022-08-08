@@ -5,7 +5,7 @@ from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
 from psycopg2.errors import UniqueViolation
 
-from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, schema_name, schema_create_query, job_instances_table_name
+from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, schema_name, schema_create_query, job_instances_table_name 
 
 class PostgresJobStore(JobStoreBase):
     def __init__(self, dsn: str) -> None:
@@ -52,19 +52,24 @@ class PostgresJobStore(JobStoreBase):
             curs.execute(query, (result, job_id))
 
     def add_job_to_store(self, job: Job) -> str:
+        insert_fields = 'job_queue_name, args, kwargs, parent_job_id, retry_until_success, retry_delay_minutes, name'
+        
+        query_args = (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.retry_until_success, job.retry_delay_minutes, job.name)
+
         if job.id is None:
             query = f"""
-            INSERT INTO {schema_name}.{job_instances_table_name} (job_queue_name, args, kwargs, parent_job_id) VALUES (%s, %s, %s, %s) RETURNING ID
+            INSERT INTO {schema_name}.{job_instances_table_name} ({insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING ID
             """
             with self.conn.cursor() as curs:
-                curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id))
+                curs.execute(query, query_args)
                 job.id = str(curs.fetchone()[0])
         else:
             query = f"""
-            INSERT INTO {schema_name}.{job_instances_table_name} (id, job_queue_name, args, kwargs, parent_job_id) VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO {schema_name}.{job_instances_table_name} (id, {insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
             with self.conn.cursor() as curs:
-                curs.execute(query, (job.id, job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id))
+                curs.execute(query, (job.id, ) + query_args)
+
         return job.id
 
     def update_job_in_store(self, job: Job) -> str:
@@ -73,6 +78,13 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.id))
+
+    def remove_job_from_store(self, job_id: str):
+        query = f"""
+        DELETE FROM {schema_name}.{job_instances_table_name} WHERE id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (job_id, ))
 
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         query = f"""
@@ -83,7 +95,7 @@ class PostgresJobStore(JobStoreBase):
             return [x[0] for x in curs.fetchall()]
 
     def get_job(self, job_id: str, include_result=False) -> Job:
-        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id"
+        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name"
 
         if include_result:
             fields_to_select += ", result"
@@ -98,26 +110,31 @@ class PostgresJobStore(JobStoreBase):
             if result is None:
                 raise JobNotFoundInStore(f'Job id = {job_id} not found in store')
 
-            job = Job(id=job_id, queue_name=result[0], status=result[3], parent_job_id=result[4])
+            job = Job(
+                id=job_id, 
+                queue_name=result[0], 
+                status=result[3], 
+                parent_job_id=result[4],
+                retry_until_success=result[5],
+                retry_delay_minutes=result[6],
+                name=result[7]
+                )
             job.set_args_bytes(result[1])
             job.set_kwargs_bytes(result[2])
             if include_result:
-                job.set_result_bytes(result[5])
+                job.set_result_bytes(result[8])
 
             return job
 
-    def get_not_acknowledged_jobs_ids_in_queues(self, queues_names: str) -> List[Tuple[str, str]]:
+    def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         query = f"""
         SELECT id, job_queue_name FROM {schema_name}.{job_instances_table_name}
         WHERE 
             status = 'created' 
             AND parent_job_id IS NULL 
-            AND job_queue_name = ANY (%s)
         """
         with self.conn.cursor() as curs:
-            curs.execute(query, (queues_names,))
+            curs.execute(query)
             result = curs.fetchall()
 
             return [(x[0], x[1]) for x in result]
-
-

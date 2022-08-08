@@ -6,3 +6,6 @@ class FailedToEnqueueJob(BrokerException):
 
 class JobIdIsNone(BrokerException):
     pass
+
+class UnknownSchedulingMethod(BrokerException):
+    pass
