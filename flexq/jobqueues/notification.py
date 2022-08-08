@@ -8,7 +8,7 @@ class NotificationTypeEnum(str, Enum):
 
 class Notification:
     def __init__(self, notification_type: NotificationTypeEnum, job_name: str, job_id: str) -> None:
-        assert notification_type in NotificationTypeEnum
+        assert notification_type in NotificationTypeEnum.__members__
 
         self.notification_type = notification_type
         self.job_name = job_name
