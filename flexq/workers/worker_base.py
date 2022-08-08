@@ -150,10 +150,10 @@ class WorkerBase:
         self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)
 
     def _todo_callback(self, job_name: str, job_id: str):
-        raise NotImplemented
+        pass
 
     def _abort_callback(self, job_id: str):
-        raise NotImplemented
+        pass
 
     
 

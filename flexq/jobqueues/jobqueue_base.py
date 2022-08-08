@@ -17,10 +17,10 @@ class JobQueueBase:
         self._wait_in_queues(queues_names)
 
     def _wait_in_queues(self, queues_names: List[str]):
-        raise NotImplemented    
+        pass    
 
     def send_notify_to_queue(self, queue_name: str, notifycation_type: NotificationTypeEnum, payload: str):
-        raise NotImplemented
+        pass
 
     def _handle_notification(self, notification: Notification):
         logging.debug(f'got notification: {str(notification)}')

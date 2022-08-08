@@ -11,7 +11,7 @@ class Executor:
             return None
 
     def perform(self, *args, **kwargs):
-        raise NotImplemented
+        pass
 
     def get_expected_exceptions(self) -> List[Type[Exception]]:
         return []
