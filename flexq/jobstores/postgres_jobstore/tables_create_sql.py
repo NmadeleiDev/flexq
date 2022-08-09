@@ -32,8 +32,15 @@ create table if not exists {schema_name}.{job_instances_table_name}
 
     status             {job_status_enum_name} default '{JobStatusEnum.created}',
 
+    user_status varchar default null,
+
     created_at             timestamp default now(),
-    finished_at             timestamp default null
+    finished_at             timestamp default null,
+
+    CONSTRAINT fk_{job_instances_table_name}
+      FOREIGN KEY(parent_job_id) 
+	  REFERENCES {schema_name}.{job_instances_table_name}(id)
+      ON DELETE CASCADE
 )
 """
 

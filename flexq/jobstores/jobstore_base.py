@@ -34,6 +34,12 @@ class JobStoreBase:
     def get_job(self, job_id: str, include_result=False) -> Job:
         pass
 
+    def get_job_user_status(self, job_id: str) -> str:
+        pass
+
+    def set_job_user_status(self, job_id: str, value: str):
+        pass
+
     def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         pass
 

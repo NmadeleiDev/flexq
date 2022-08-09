@@ -138,3 +138,18 @@ class PostgresJobStore(JobStoreBase):
             result = curs.fetchall()
 
             return [(x[0], x[1]) for x in result]
+
+    def get_job_user_status(self, job_id: str) -> str:
+        query = f"""
+        SELECT user_status FROM {schema_name}.{job_instances_table_name} WHERE id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (job_id,))
+            return curs.fetchone[0]
+
+    def set_job_user_status(self, job_id: str, value: str):
+        query = f"""
+        UPDATE {schema_name}.{job_instances_table_name} SET user_status = %s WHERE id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (value, job_id))

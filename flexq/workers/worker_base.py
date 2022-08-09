@@ -119,6 +119,12 @@ class WorkerBase:
             notifycation_type=NotificationTypeEnum.todo.value, 
             payload=job.parent_job_id)
 
+    def _get_origin_job_id(self, job: Job) -> str:
+        parent_job = job
+        while parent_job.parent_job_id is not None:
+            parent_job = self.jobstore.get_job(parent_job.parent_job_id)
+        return parent_job.id
+
     def _call_executor(self, job: Job):
         executor = self.executors[job.queue_name]
 
@@ -128,6 +134,11 @@ class WorkerBase:
             if isinstance(executor, type(Executor)):
                 executor = executor()
                 executor.set_flexq_job_id(job.id)
+                executor.save_state_cb = self.jobstore.set_job_user_status
+                
+                if executor.set_origin_job_id:
+                    executor.set_flexq_origin_job_id(self._get_origin_job_id(job))
+
                 expected_exceptions = tuple(executor.get_expected_exceptions())
                 try:
                     result = executor.perform(*job.args, **job.kwargs)
