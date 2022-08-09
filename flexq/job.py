@@ -36,7 +36,7 @@ class Job:
             retry_until_success=False,
             retry_delay_minutes=0,
 
-            name=None,
+            name: Union[str, None]=None,
 
             ) -> None:
         self.queue_name = queue_name
@@ -103,6 +103,8 @@ class JobComposite:
             retry_until_success=False,
             retry_delay_minutes=0,
 
+            name: Union[str, None]=None,
+
         ) -> None:
         self.parent_job_id = parent_job_id
         self.id = id
@@ -114,10 +116,13 @@ class JobComposite:
         self.retry_until_success = retry_until_success
         self.retry_delay_minutes = retry_delay_minutes
 
+        self.name = name
+
         self.broker_for_automatic_registering = broker_for_automatic_registering
 
         self.kwargs = {}
         self.args = []
+        
         self.broker_for_automatic_registering.register_job(self)
         for job in jobs:
             job.parent_job_id = self.id # чтобы scheduler не начинал самостоятельно эти работы
