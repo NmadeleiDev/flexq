@@ -34,11 +34,10 @@ class WorkerBase:
 
     def _try_start_job(self, job_name: str, job_id: str):
         # пытаемся добавить работу в poll - есть успешно добавлась (т.е. ее там еще не было) , начинаем выполнять
-        self._acquire_lock()
-        self.running_jobs.add(job_id)
-        self._release_lock()
-        
+
         if job_name in (JobComposite.queue_name, Group.queue_name, Pipeline.queue_name):
+            self._add_running_job(job_id)
+
             job = self.jobstore.get_job(job_id)
 
             if job.queue_name == Group.queue_name:
@@ -87,10 +86,13 @@ class WorkerBase:
                     job.status = JobStatusEnum.success.value
                     self.jobstore.set_status_for_job(job.id, job.status)
             else:
+                self._remove_running_job(job_id)
                 raise UnknownJobExecutor(f'Unknown composite type: {job.queue_name}')
 
+            self._remove_running_job(job_id)
         elif self.jobstore.try_acknowledge_job(job_id):
             logging.debug(f'Acknowledged job_id={job_id}')
+            self._add_running_job(job_id)
             
             job = self.jobstore.get_job(job_id)
 
@@ -102,22 +104,26 @@ class WorkerBase:
                 if self.store_results and job.result is not None:
                     self.jobstore.save_result_for_job(job_id, job.get_result_bytes())
 
+            self._remove_running_job(job_id)
         else:
             logging.debug(f'seems like job {job_id} is already handled by other worker')
-            self._acquire_lock()
-            self.running_jobs.remove(job_id)
-            self._release_lock()
             return
 
-        self._acquire_lock()
-        self.running_jobs.remove(job_id)
-        self._release_lock()
-
-        if job.parent_job_id is not None:
+        if job.status == JobStatusEnum.success.value and job.parent_job_id is not None:
             self.jobqueue.send_notify_to_queue(
             queue_name=JobComposite.queue_name, 
             notifycation_type=NotificationTypeEnum.todo.value, 
             payload=job.parent_job_id)
+
+    def _add_running_job(self, job_id: str):
+        self._acquire_lock()
+        self.running_jobs.add(job_id)
+        self._release_lock()
+
+    def _remove_running_job(self, job_id: str):
+        self._acquire_lock()
+        self.running_jobs.remove(job_id)
+        self._release_lock()
 
     def _get_origin_job_id(self, job: Job) -> str:
         parent_job = job
@@ -151,9 +157,8 @@ class WorkerBase:
                 job.result = result
             job.status = JobStatusEnum.success.value
         except Exception as e:
-            logging.info(f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}')
+            logging.info(f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}, traceback: {e.__traceback__}')
             job.status = JobStatusEnum.failed.value
-            raise e
 
         logging.debug(f'finished job {job.id} with status: {job.status}')
 
