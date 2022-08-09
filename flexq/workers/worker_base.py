@@ -163,7 +163,7 @@ class WorkerBase:
             logging.info(f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}, traceback: {traceback_str}')
             job.status = JobStatusEnum.failed.value
 
-        logging.debug(f'finished job {job.id} with status: {job.status}')
+        logging.debug(f'job {job} execution completed with status: {job.status}')
 
     def wait_for_work(self):
         self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)
