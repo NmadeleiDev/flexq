@@ -13,11 +13,13 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 
 class Broker:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, run_inspection_every_n_minutes=5) -> None:
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, apscheduler_instance:Union[BackgroundScheduler, None]=None, run_inspection_every_n_minutes=5) -> None:
         self.jobstore = jobstore
         self.jobqueue = jobqueue
 
         self.run_inspection_every_n_minutes = run_inspection_every_n_minutes
+
+        self.scheduler = apscheduler_instance
 
         self.start_running_jobs_inspector()
 
@@ -45,8 +47,9 @@ class Broker:
             'max_instances': 1
         }
 
-        self.scheduler = BackgroundScheduler(job_defaults=job_defaults)
-        self.scheduler.start()
+        if self.scheduler is None:
+            self.scheduler = BackgroundScheduler(job_defaults=job_defaults)
+            self.scheduler.start()
 
         self.inspection_job = self.scheduler.add_job(self.inspect_running_jobs, 'interval', minutes=self.run_inspection_every_n_minutes)
 
