@@ -5,6 +5,7 @@ from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor
 from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
+import traceback
 
 
 class WorkerBase:
@@ -157,7 +158,9 @@ class WorkerBase:
                 job.result = result
             job.status = JobStatusEnum.success.value
         except Exception as e:
-            logging.info(f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}, traceback: {e.__traceback__}')
+            traceback_str = ''.join(traceback.format_tb(e.__traceback__))
+
+            logging.info(f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}, traceback: {traceback_str}')
             job.status = JobStatusEnum.failed.value
 
         logging.debug(f'finished job {job.id} with status: {job.status}')
