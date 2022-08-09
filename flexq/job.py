@@ -99,6 +99,9 @@ class JobComposite:
             cron: Union[str, None] = None,
             interval_name: Union[JobIntervalNameEnum, None] = None,
             interval_value: int = 0,
+            
+            retry_until_success=False,
+            retry_delay_minutes=0,
 
         ) -> None:
         self.parent_job_id = parent_job_id
@@ -107,6 +110,9 @@ class JobComposite:
         self.cron = cron
         self.interval_name = interval_name
         self.interval_value = interval_value
+
+        self.retry_until_success = retry_until_success
+        self.retry_delay_minutes = retry_delay_minutes
 
         self.broker_for_automatic_registering = broker_for_automatic_registering
 
