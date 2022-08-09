@@ -111,9 +111,9 @@ class Broker:
         scheduler_job_id = f'scheduled_job_{job_id}'
 
         present_jobs = [x.id for x in self.scheduler.get_jobs()]
-        if scheduler_job_id not in present_jobs:
+        if scheduler_job_id in present_jobs:
             self.scheduler.remove_job(scheduler_job_id)
-            logging.debug(f'removed scheduled_job for job_id={job_id}')
+            logging.debug(f'removed scheduled_job for job_id={job_id} with scheduler id = {scheduler_job_id}')
     
 
 
