@@ -168,7 +168,7 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (job_id,))
-            return curs.fetchone[0]
+            return curs.fetchone()[0]
 
     def set_job_user_status(self, job_id: str, value: str):
         query = f"""
