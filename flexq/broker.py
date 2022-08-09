@@ -26,12 +26,11 @@ class Broker:
         return job
 
     def register_job(self, job: Union[Job, Group, Pipeline]) -> Job:
-        self._add_scheduler_job_if_schedule_present(job)
 
-        if self.jobstore.add_job_to_store(job):
-            return job
-        else:
+        if not self.jobstore.add_job_to_store(job):
             raise FailedToEnqueueJob(f'can not put job into queue, job: {job}')
+        self._add_scheduler_job_if_schedule_present(job)
+        return job
 
     def launch_job(self, job: Union[Job, Group, Pipeline]):
         self.jobqueue.send_notify_to_queue(queue_name=job.queue_name, notifycation_type=NotificationTypeEnum.todo.value, payload=job.id)

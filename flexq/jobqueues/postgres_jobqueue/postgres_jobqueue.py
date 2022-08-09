@@ -31,9 +31,9 @@ class PostgresJobQueue(JobQueueBase):
             channel_name = str(NotificationTypeEnum.abort)
             curs.execute(f'LISTEN "{channel_name}";')
 
-        curs.execute(f'LISTEN "{JobComposite.queue_name}";')
-        curs.execute(f'LISTEN "{Group.queue_name}";')
-        curs.execute(f'LISTEN "{Pipeline.queue_name}";')
+        curs.execute(f'LISTEN "{JobComposite.queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}";')
+        curs.execute(f'LISTEN "{Group.queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}";')
+        curs.execute(f'LISTEN "{Pipeline.queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}";')
         
         while True:
             if select.select([conn],[],[],10) != ([],[],[]):
