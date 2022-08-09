@@ -13,13 +13,17 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 
 class Broker:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, run_inspection_every_n_minutes=5) -> None:
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, run_inspection_every_n_minutes=5, is_master=False) -> None:
         self.jobstore = jobstore
         self.jobqueue = jobqueue
 
         self.run_inspection_every_n_minutes = run_inspection_every_n_minutes
 
-        self.start_running_jobs_inspector()
+        self.is_master = is_master
+
+        self.start_jobs_inspector()
+        if self.is_master:
+            self.init_scheduled_jobs()
 
     def add_job(self, job: Union[Job, Group, Pipeline]) -> Job:
         self.launch_job(self.register_job(job))
@@ -39,7 +43,7 @@ class Broker:
         self.jobstore.remove_job_from_store(job_id)
         self._remove_scheduler_job_if_present(job_id)
 
-    def start_running_jobs_inspector(self):
+    def start_jobs_inspector(self):
         job_defaults = {
             'coalesce': True,
             'max_instances': 1
@@ -54,6 +58,11 @@ class Broker:
         for to_launch_job_id, to_launch_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_and_queue_names():
             logging.debug(f'calling send_notify_to_queue for job name "{to_launch_queue_name}", id={to_launch_job_id}')
             self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notifycation_type=NotificationTypeEnum.todo.value, payload=to_launch_job_id)
+
+    def init_scheduled_jobs(self):
+        scheduled_jobs = self.jobstore.get_job(with_schedule_only=True)
+        for job in scheduled_jobs:
+            self._add_scheduler_job_if_schedule_present(job)
 
     def try_relaunch_job(self, job_id: str, do_send_launch=True):
         # получить job

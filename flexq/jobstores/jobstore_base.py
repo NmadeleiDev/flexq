@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from flexq.job import Job, JobStatusEnum
 
 
@@ -31,7 +31,7 @@ class JobStoreBase:
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         pass
 
-    def get_job(self, job_id: str, include_result=False) -> Job:
+    def get_job(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False) -> Union[Job, List[Job], None]:
         pass
 
     def get_job_user_status(self, job_id: str) -> str:

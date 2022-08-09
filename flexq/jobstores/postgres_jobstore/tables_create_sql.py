@@ -25,6 +25,11 @@ create table if not exists {schema_name}.{job_instances_table_name}
     kwargs          bytea not null,
     parent_job_id     int default null,
     result             bytea default null,
+
+    cron             varchar default null,
+    interval_name             varchar default null,
+    interval_value             integer default 0,
+    
     retry_until_success             boolean default false,
     retry_delay_minutes               integer default 0,
 
