@@ -90,9 +90,23 @@ class Job:
 class JobComposite:
     queue_name = '_flexq_job_composite'
 
-    def __init__(self, *jobs: Union[Job, Pipeline, Group], parent_job_id: Union[str, None]=None, id=None, broker_for_automatic_registering=None) -> None:
+    def __init__(self, 
+            *jobs: Union[Job, Pipeline, Group], 
+            parent_job_id: Union[str, None]=None, 
+            id=None, 
+            broker_for_automatic_registering=None,
+
+            cron: Union[str, None] = None,
+            interval_name: Union[JobIntervalNameEnum, None] = None,
+            interval_value: int = 0,
+
+        ) -> None:
         self.parent_job_id = parent_job_id
         self.id = id
+
+        self.cron = cron
+        self.interval_name = interval_name
+        self.interval_value = interval_value
 
         self.broker_for_automatic_registering = broker_for_automatic_registering
 
