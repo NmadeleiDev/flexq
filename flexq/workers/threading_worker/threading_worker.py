@@ -3,7 +3,7 @@ from threading import Lock, Thread
 from typing import Callable, Union
 from flexq.exceptions.worker import RunningJobDuplicate, UnknownJobExecutor
 
-from flexq.job import JobStatusEnum, Pipeline, Group
+from flexq.job import JobComposite, JobStatusEnum, Pipeline, Group
 from flexq.jobqueues.jobqueue_base import JobQueueBase
 from flexq.jobstores.jobstore_base import JobStoreBase
 
@@ -28,7 +28,7 @@ class ThreadingWorker(WorkerBase):
             raise RunningJobDuplicate(f'job {job_name} with id={job_id} passed to _todo_callback, but it is already in self.running_jobs')
 
         if job_name not in self.executors.keys():
-            if job_name not in (Pipeline.queue_name, Group.queue_name):
+            if job_name not in (Pipeline.queue_name, Group.queue_name, JobComposite.queue_name):
                 raise UnknownJobExecutor(f'Job executor "{job_name}" is not known here')
         else:
             if self.max_parallel_executors is not None and len(self.running_jobs) >= self.max_parallel_executors:
