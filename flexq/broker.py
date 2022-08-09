@@ -105,7 +105,7 @@ class Broker:
         present_jobs = [x.id for x in self.scheduler.get_jobs()]
         if scheduler_job_id not in present_jobs:
             self.scheduler.add_job(self.try_relaunch_job, trigger=trigger, id=scheduler_job_id, coalesce=True)
-            logging.debug(f'added scheduled_job for job {job}')
+            logging.debug(f'added scheduled_job for job {job} as id {scheduler_job_id}')
 
     def _remove_scheduler_job_if_present(self, job_id: str):
         scheduler_job_id = f'scheduled_job_{job_id}'
