@@ -128,7 +128,7 @@ class PostgresJobStore(JobStoreBase):
             jobs = []
             for result in results:
                 job = Job(
-                    id=job_id, 
+                    id=result[11], 
                     queue_name=result[0], 
                     status=result[3], 
                     parent_job_id=result[4],
@@ -138,7 +138,6 @@ class PostgresJobStore(JobStoreBase):
                     cron=result[8],
                     interval_name=result[9],
                     interval_value=result[10],
-                    id=result[11],
                     )
                 job.set_args_bytes(result[1])
                 job.set_kwargs_bytes(result[2])
