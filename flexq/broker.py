@@ -30,7 +30,6 @@ class Broker:
         return job
 
     def register_job(self, job: Union[Job, Group, Pipeline]) -> Job:
-
         if not self.jobstore.add_job_to_store(job):
             raise FailedToEnqueueJob(f'can not put job into queue, job: {job}')
         self._add_scheduler_job_if_schedule_present(job)
