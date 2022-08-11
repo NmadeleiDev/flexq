@@ -1,3 +1,4 @@
+import logging
 from threading import Lock
 from typing import List, Type, Union
 
@@ -30,6 +31,7 @@ class Executor:
 
     def set_state(self, state_msg: str, use_this_job_id=True, use_origin_job_id=False):
         if self.jobstore is None:
+            logging.debug(f'job_id {self.get_flexq_job_id()} cant log state, as jobstore is None. State: {state_msg}')
             return
         if use_this_job_id:
             self.jobstore.set_job_user_status(self.get_flexq_job_id(), state_msg)
