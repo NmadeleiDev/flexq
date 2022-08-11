@@ -2,7 +2,7 @@ from typing import List, Type, Union
 
 class Executor:
     set_origin_job_id = False
-    save_state_cb = lambda job_id, msg: None
+    # save_state_cb = lambda job_id, msg: None
 
     def set_flexq_job_id(self, job_id: str):
         self.job_id = job_id
@@ -23,6 +23,8 @@ class Executor:
             return None
 
     def set_state(self, state_msg: str, use_this_job_id=True, use_origin_job_id=False):
+        if not hasattr(self, 'save_state_cb'):
+            return
         if use_this_job_id:
             self.save_state_cb(self.get_flexq_job_id(), state_msg)
         if use_origin_job_id:
