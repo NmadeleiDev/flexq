@@ -1,3 +1,4 @@
+from threading import Lock
 from typing import List, Type, Union
 
 from .jobstores.jobstore_base import JobStoreBase
@@ -7,7 +8,7 @@ class Executor:
     jobstore: Union[JobStoreBase, None] = None
 
     def set_jobstore(self, jobstore: JobStoreBase):
-        self.jobstore = jobstore
+        Executor.jobstore = jobstore
 
     def set_flexq_job_id(self, job_id: str):
         self.job_id = job_id
