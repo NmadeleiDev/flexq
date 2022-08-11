@@ -151,6 +151,7 @@ class WorkerBase:
                     result = executor.perform(*job.args, **job.kwargs)
                 except expected_exceptions as e:
                     logging.info(f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:{type(e).__name__}: {e}')
+                    result = None
             else:
                 result = executor(*job.args, **job.kwargs)
 
