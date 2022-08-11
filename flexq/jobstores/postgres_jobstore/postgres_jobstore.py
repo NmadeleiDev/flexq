@@ -15,6 +15,7 @@ class PostgresJobStore(JobStoreBase):
         self._init_tables()
 
     def _init_db(self):
+        # TODO: сделать JobStore сериализуемым, т.е. не хранить conn как аттрибут self (подключаться в каждой фукнции просто)
         self.conn = psycopg2.connect(self.dsn)
         self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
