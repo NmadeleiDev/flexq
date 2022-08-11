@@ -141,7 +141,7 @@ class WorkerBase:
             if isinstance(executor, type(Executor)):
                 executor = executor()
                 executor.set_flexq_job_id(job.id)
-                executor.save_state_cb = lambda job_id, msg: self.jobstore.set_job_user_status(job_id, msg)
+                executor.set_jobstore(self.jobstore)
                 
                 if executor.set_origin_job_id:
                     executor.set_flexq_origin_job_id(self._get_origin_job_id(job))
