@@ -97,7 +97,7 @@ class PostgresJobStore(JobStoreBase):
             return [x[0] for x in curs.fetchall()]
 
     def get_job(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False) -> Union[Job, List[Job], None]:
-        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value"
+        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, id"
 
         if include_result:
             fields_to_select += ", result"
@@ -138,11 +138,12 @@ class PostgresJobStore(JobStoreBase):
                     cron=result[8],
                     interval_name=result[9],
                     interval_value=result[10],
+                    id=result[11],
                     )
                 job.set_args_bytes(result[1])
                 job.set_kwargs_bytes(result[2])
                 if include_result:
-                    job.set_result_bytes(result[11])
+                    job.set_result_bytes(result[12])
                 jobs.append(job)
 
             if len(jobs) == 1:
