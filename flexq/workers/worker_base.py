@@ -150,7 +150,9 @@ class WorkerBase:
                 try:
                     result = executor.perform(*job.args, **job.kwargs)
                 except expected_exceptions as e:
-                    logging.info(f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:{type(e).__name__}: {e}')
+                    traceback_str = ''.join(traceback.format_tb(e.__traceback__))
+
+                    logging.info(f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:{type(e).__name__}: {e}, traceback: {traceback_str}')
                     result = None
             else:
                 result = executor(*job.args, **job.kwargs)
