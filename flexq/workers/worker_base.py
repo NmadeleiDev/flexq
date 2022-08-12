@@ -1,5 +1,6 @@
 import logging
 from typing import Callable, Union
+from flexq import job
 from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor
 from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline
@@ -126,7 +127,10 @@ class WorkerBase:
 
     def _remove_running_job(self, job_id: str):
         self._acquire_lock()
-        self.running_jobs.remove(job_id)
+        if job_id in self.running_jobs:
+            self.running_jobs.remove(job_id)
+        else:
+            logging.debug(f'tryied to remove job_id={job_id}, but it is not in self.running_jobs')
         self._release_lock()
 
     def _get_origin_job_id(self, job: Job) -> str:
