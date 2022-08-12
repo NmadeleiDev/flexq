@@ -76,10 +76,10 @@ class PostgresJobStore(JobStoreBase):
 
     def update_job_in_store(self, job: Job) -> str:
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET (job_queue_name, args, kwargs, parent_job_id) = (%s, %s, %s, %s) WHERE id = %s
+        UPDATE {schema_name}.{job_instances_table_name} SET (job_queue_name, args, kwargs, parent_job_id, status) = (%s, %s, %s, %s, %s) WHERE id = %s
         """
         with self.conn.cursor() as curs:
-            curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.id))
+            curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.status, job.id))
 
     def remove_job_from_store(self, job_id: str):
         query = f"""
