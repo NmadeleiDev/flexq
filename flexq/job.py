@@ -143,7 +143,6 @@ class JobComposite:
                 else:
                     raise JobIdIsNone(f'{type(self).__name__} needs broker_for_automatic_registering to be passed, as job {job} must be updated to have parent_job_id.')
 
-
             self.args.append(job.id)
 
 class Group(JobComposite, Job):
