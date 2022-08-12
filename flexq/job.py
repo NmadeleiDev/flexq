@@ -94,6 +94,9 @@ class JobComposite:
             *jobs: Union[Job, Pipeline, Group], 
             parent_job_id: Union[str, None]=None, 
             id=None, 
+
+            status=JobStatusEnum.created.value, 
+
             broker_for_automatic_registering=None,
 
             cron: Union[str, None] = None,
@@ -108,6 +111,8 @@ class JobComposite:
         ) -> None:
         self.parent_job_id = parent_job_id
         self.id = id
+
+        self.status = status
 
         self.cron = cron
         self.interval_name = interval_name
