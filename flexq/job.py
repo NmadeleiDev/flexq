@@ -13,6 +13,7 @@ class JobStatusEnum(str, Enum):
     acknowledged = 'acknowledged'
     success = 'success'
     failed = 'failed'
+    ephemeral = 'ephemeral'
 
 class JobIntervalNameEnum(str, Enum):
     hours = 'hours'
