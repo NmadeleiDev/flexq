@@ -37,12 +37,12 @@ class WorkerBase:
         # пытаемся добавить работу в poll - есть успешно добавлась (т.е. ее там еще не было) , начинаем выполнять
 
         if job_name in (JobComposite.queue_name, Group.queue_name, Pipeline.queue_name):
-            self._add_running_job(job_id)
-
             job = self.jobstore.get_job(job_id)
             if job.status == JobStatusEnum.ephemeral.value:
                 logging.debug(f'job {job} is ephemeral, skipping')
                 return
+
+            self._add_running_job(job_id)
 
             if job.queue_name == Group.queue_name:
                 successfull_jobs_count = 0
