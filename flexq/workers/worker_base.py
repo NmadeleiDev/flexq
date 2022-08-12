@@ -40,6 +40,9 @@ class WorkerBase:
             self._add_running_job(job_id)
 
             job = self.jobstore.get_job(job_id)
+            if job.status == JobStatusEnum.ephemeral.value:
+                logging.debug(f'job {job} is ephemeral, skipping')
+                return
 
             if job.queue_name == Group.queue_name:
                 successfull_jobs_count = 0
