@@ -145,7 +145,7 @@ class PostgresJobStore(JobStoreBase):
     def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         query = f"""
         SELECT rj.id, rj.job_queue_name FROM {schema_name}.{job_instances_table_name} as rj
-        LEFT JOIN {schema_name}.{job_instances_table_name} as pj ON rj.parent_id = pj.id
+        LEFT JOIN {schema_name}.{job_instances_table_name} as pj ON rj.parent_job_id = pj.id
         WHERE 
             rj.status = '{JobStatusEnum.created.value}' 
             AND (rj.parent_job_id IS NULL OR pj.status = '{JobStatusEnum.ephemeral.value}')
