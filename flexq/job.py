@@ -57,23 +57,10 @@ class JobAbstract:
         self.created_at = created_at
         self.finished_at = finished_at
 
-class Job(JobAbstract):
-    def __init__(self, 
-        queue_name: str, 
-        args: List = [], 
-        kwargs: Dict[str, Hashable] = {},
-        result: any = None,
+        self.kwargs = {}
+        self.args = []
 
-        **other_kwargs
-        ) -> None:
-
-        super().__init__(**other_kwargs)
-
-        self.queue_name = queue_name
-        self.args = args
-        self.kwargs = kwargs
-
-        self.result = result
+        self.result = None
 
     def get_args_bytes(self) -> bytes:
         return pickle.dumps(self.args)
@@ -99,6 +86,27 @@ class Job(JobAbstract):
     def set_result_bytes(self, val: bytes):
         val = pickle.loads(val)
         self.result = val
+
+    def __str__(self) -> str:
+        return f'job_id={self.id}'
+
+class Job(JobAbstract):
+    def __init__(self, 
+        queue_name: str, 
+        args: List = [], 
+        kwargs: Dict[str, Hashable] = {},
+        result: any = None,
+
+        **other_kwargs
+        ) -> None:
+
+        super().__init__(**other_kwargs)
+
+        self.queue_name = queue_name
+        self.args = args
+        self.kwargs = kwargs
+
+        self.result = result
 
     def __str__(self) -> str:
         return f'job_name={self.queue_name}, job_id={self.id}'
