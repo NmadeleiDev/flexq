@@ -136,8 +136,11 @@ class JobComposite(JobAbstract):
 
             self.args.append(job.id)
 
-class Group(JobComposite, Job):
+    def __str__(self) -> str:
+        return f'job_name={self.queue_name}, job_id={self.id}'
+
+class Group(JobComposite):
     queue_name = '_flexq_group'
 
-class Pipeline(JobComposite, Job):
+class Pipeline(JobComposite):
     queue_name = '_flexq_pipeline'
