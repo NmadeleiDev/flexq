@@ -62,6 +62,8 @@ class Job(JobAbstract):
         queue_name: str, 
         args: List = [], 
         kwargs: Dict[str, Hashable] = {},
+        result: any = None,
+
         id=None, 
         status=JobStatusEnum.created.value, 
         parent_job_id: Union[str, None] = None, 
@@ -80,6 +82,8 @@ class Job(JobAbstract):
         self.queue_name = queue_name
         self.args = args
         self.kwargs = kwargs
+
+        self.result = result
 
     def get_args_bytes(self) -> bytes:
         return pickle.dumps(self.args)
