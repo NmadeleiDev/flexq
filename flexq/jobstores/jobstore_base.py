@@ -40,3 +40,5 @@ class JobStoreBase:
     def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         pass
 
+    def set_job_parent_id(self, job_id: str, parent_job_id: str):
+        pass

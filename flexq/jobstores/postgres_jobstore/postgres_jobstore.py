@@ -171,3 +171,10 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (value, job_id))
+
+    def set_job_parent_id(self, job_id: str, parent_job_id: str):
+        query = f"""
+        UPDATE {schema_name}.{job_instances_table_name} SET parent_job_id = %s WHERE id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (parent_job_id, job_id))
