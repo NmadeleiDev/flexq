@@ -85,7 +85,7 @@ class Broker:
             logging.debug(f'unable to launch job name={job.queue_name}, id={job.id} since latest execution is not finished yet')
             return
 
-        job.status == JobStatusEnum.created.value
+        job.status = JobStatusEnum.created.value
         self.jobstore.set_status_for_job(job.id, JobStatusEnum.created.value)
         logging.debug(f'updated job {job} status to {job.status}')
 
