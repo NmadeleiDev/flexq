@@ -70,7 +70,7 @@ class PostgresJobStore(JobStoreBase):
             INSERT INTO {schema_name}.{job_instances_table_name} (id, {insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             with self.conn.cursor() as curs:
-                curs.execute(query, (job.id, ) + query_args)
+                curs.execute(query, [job.id, ] + query_args)
 
         return job.id
 
@@ -138,6 +138,7 @@ class PostgresJobStore(JobStoreBase):
                 job.set_kwargs_bytes(result[2])
                 if include_result:
                     job.set_result_bytes(result[14])
+                    
                 jobs.append(job)
 
             return jobs

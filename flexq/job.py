@@ -23,8 +23,8 @@ class JobIntervalNameEnum(str, Enum):
 
 class JobAbstract:
     def __init__(self, 
-            id=None, 
-            status=JobStatusEnum.created.value, 
+            id: Union[str, None]=None, 
+            status:JobStatusEnum = JobStatusEnum.created.value, 
             parent_job_id: Union[str, None]=None,
             cron: Union[str, None] = None,
             interval_name: Union[JobIntervalNameEnum, None] = None,
@@ -64,20 +64,10 @@ class Job(JobAbstract):
         kwargs: Dict[str, Hashable] = {},
         result: any = None,
 
-        id=None, 
-        status=JobStatusEnum.created.value, 
-        parent_job_id: Union[str, None] = None, 
-        cron: Union[str, None] = None, 
-        interval_name: Union[JobIntervalNameEnum, None] = None, 
-        interval_value: int = 0, 
-        retry_until_success=False, 
-        retry_delay_minutes=0, 
-        name: Union[str, None] = None, 
-        created_at=None, 
-        finished_at=None
+        **other_kwargs
         ) -> None:
 
-        super().__init__(id, status, parent_job_id, cron, interval_name, interval_value, retry_until_success, retry_delay_minutes, name, created_at, finished_at)
+        super().__init__(**other_kwargs)
 
         self.queue_name = queue_name
         self.args = args
@@ -119,20 +109,10 @@ class JobComposite(JobAbstract):
     def __init__(self, 
         *jobs: Union[Job, Pipeline, Group], 
         broker_for_automatic_registering=None,
-
-        id=None, 
-        status=JobStatusEnum.created.value, 
-        parent_job_id: Union[str, None] = None, 
-        cron: Union[str, None] = None, 
-        interval_name: Union[JobIntervalNameEnum, None] = None, 
-        interval_value: int = 0, 
-        retry_until_success=False, 
-        retry_delay_minutes=0, 
-        name: Union[str, None] = None, 
-        created_at=None, 
-        finished_at=None
+        
+        **kwargs
         ) -> None:
-        super().__init__(id, status, parent_job_id, cron, interval_name, interval_value, retry_until_success, retry_delay_minutes, name, created_at, finished_at)
+        super().__init__(**kwargs)
 
         self.broker_for_automatic_registering = broker_for_automatic_registering
 
