@@ -110,7 +110,7 @@ class Broker:
             trigger = IntervalTrigger(
                 **kwargs
             )
-            if isinstance(datetime, job.finished_at):
+            if isinstance(job.finished_at, datetime):
                 next_run_time = job.finished_at + timedelta(**kwargs)
             else:
                 next_run_time = datetime.now() + timedelta(**kwargs)
