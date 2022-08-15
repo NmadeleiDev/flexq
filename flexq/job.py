@@ -138,7 +138,7 @@ class JobComposite(JobAbstract):
                     raise JobIdIsNone(f'Job passed to {type(self).__name__} must be registered (i.e. have an id) or broker_for_automatic_registering must be passed, which is not the case with job name = {job.queue_name}')
             else:
                 if hasattr(self.broker_for_automatic_registering, 'register_job'):
-                    self.broker_for_automatic_registering.jobstore.update_job_in_store(job)
+                    self.broker_for_automatic_registering.jobstore.set_job_parent_id(job.id, job.parent_job_id)
                 else:
                     raise JobIdIsNone(f'{type(self).__name__} needs broker_for_automatic_registering to be passed, as job {job} must be updated to have parent_job_id.')
 
