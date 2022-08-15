@@ -63,6 +63,7 @@ class Broker:
         scheduled_jobs = self.jobstore.get_jobs(with_schedule_only=True)
         for job in scheduled_jobs:
             self._add_scheduler_job_if_schedule_present(job)
+        self.scheduler.wakeup()
 
     def try_relaunch_job(self, job_id: str, do_send_launch=True):
         # получить job
@@ -120,7 +121,7 @@ class Broker:
         present_jobs = [x.id for x in self.scheduler.get_jobs()]
         if scheduler_job_id not in present_jobs:
             self.scheduler.add_job(self.try_relaunch_job, args=(job.id, ), trigger=trigger, id=scheduler_job_id, coalesce=True, next_run_time=next_run_time)
-            logging.debug(f'added scheduled_job for job {job} as id {scheduler_job_id}')
+            logging.debug(f'added scheduled_job for job {job}, finished_at={job.finished_at} as id {scheduler_job_id}')
 
     def _remove_scheduler_job_if_present(self, job_id: str):
         scheduler_job_id = f'scheduled_job_{job_id}'
