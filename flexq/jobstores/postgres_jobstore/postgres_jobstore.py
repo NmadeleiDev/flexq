@@ -144,10 +144,11 @@ class PostgresJobStore(JobStoreBase):
 
     def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         query = f"""
-        SELECT id, job_queue_name FROM {schema_name}.{job_instances_table_name}
+        SELECT rj.id, rj.job_queue_name FROM {schema_name}.{job_instances_table_name} as rj
+        JEFT JOIN {schema_name}.{job_instances_table_name} as pj ON rj.parent_id = pj.id
         WHERE 
-            status = 'created' 
-            AND parent_job_id IS NULL 
+            rj.status = '{JobStatusEnum.created.value}' 
+            AND (rj.parent_job_id IS NULL OR pj.status = '{JobStatusEnum.ephemeral.value}')
         """
         with self.conn.cursor() as curs:
             curs.execute(query)
