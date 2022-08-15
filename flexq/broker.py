@@ -59,12 +59,9 @@ class Broker:
             self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notifycation_type=NotificationTypeEnum.todo.value, payload=to_launch_job_id)
 
     def init_scheduled_jobs(self):
-        scheduled_jobs = self.jobstore.get_job(with_schedule_only=True)
-        if isinstance(scheduled_jobs, Job):
-            self._add_scheduler_job_if_schedule_present(scheduled_jobs)
-        elif isinstance(scheduled_jobs, list):
-            for job in scheduled_jobs:
-                self._add_scheduler_job_if_schedule_present(job)
+        scheduled_jobs = self.jobstore.get_jobs(with_schedule_only=True)
+        for job in scheduled_jobs:
+            self._add_scheduler_job_if_schedule_present(job)
 
     def try_relaunch_job(self, job_id: str, do_send_launch=True):
         # получить job
@@ -72,8 +69,9 @@ class Broker:
         # если кол-во незавершенных ок - поставить status=created
         # отослать launch job
         
+        logging.debug(f'Trying to relaunch job_id={job_id}, do_send_launch={do_send_launch}')
         try:
-            job = self.jobstore.get_job(job_id)
+            job = self.jobstore.get_jobs(job_id)[0]
         except JobNotFoundInStore:
             logging.debug(f'job_id={job_id} not present in store, skipping scheduled task')
             return
@@ -87,8 +85,8 @@ class Broker:
             return
 
         job.status == JobStatusEnum.created.value
-
-        self.jobstore.update_job_in_store(job)
+        self.jobstore.set_status_for_job(job.id, JobStatusEnum.created.value)
+        logging.debug(f'updated job {job} status to {job.status}')
 
         if do_send_launch:
             self.launch_job(job)

@@ -96,7 +96,7 @@ class PostgresJobStore(JobStoreBase):
             curs.execute(query, (parent_job_id,))
             return [x[0] for x in curs.fetchall()]
 
-    def get_job(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False) -> Union[Job, List[Job], None]:
+    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False) -> Union[List[Job], None]:
         fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, id"
 
         if include_result:
@@ -145,10 +145,7 @@ class PostgresJobStore(JobStoreBase):
                     job.set_result_bytes(result[12])
                 jobs.append(job)
 
-            if len(jobs) == 1:
-                return jobs[0]
-            else:
-                return jobs
+            return jobs
 
     def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         query = f"""

@@ -38,7 +38,7 @@ class WorkerBase:
         # пытаемся добавить работу в poll - есть успешно добавлась (т.е. ее там еще не было) , начинаем выполнять
 
         if job_name in (JobComposite.queue_name, Group.queue_name, Pipeline.queue_name):
-            job = self.jobstore.get_job(job_id)
+            job = self.jobstore.get_jobs(job_id)[0]
             if job.status == JobStatusEnum.ephemeral.value:
                 logging.debug(f'job {job} is ephemeral, skipping')
                 return
@@ -50,7 +50,7 @@ class WorkerBase:
                 child_jobs = self.jobstore.get_child_job_ids(job.id)
 
                 for ingroup_job_id in child_jobs:
-                    ingroup_job = self.jobstore.get_job(ingroup_job_id)
+                    ingroup_job = self.jobstore.get_jobs(ingroup_job_id)[0]
                     if ingroup_job.status == JobStatusEnum.created:
                         self.jobqueue.send_notify_to_queue(
                             queue_name=ingroup_job.queue_name, 
@@ -71,7 +71,7 @@ class WorkerBase:
                 child_jobs = self.jobstore.get_child_job_ids(job.id)
 
                 for inpipe_job_id in child_jobs: # но по порядку
-                    inpipe_job = self.jobstore.get_job(inpipe_job_id)
+                    inpipe_job = self.jobstore.get_jobs(inpipe_job_id)[0]
                     if inpipe_job.status == JobStatusEnum.success:
                         successfull_jobs_count += 1
                         continue
@@ -99,7 +99,7 @@ class WorkerBase:
             logging.debug(f'Acknowledged job_id={job_id}')
             self._add_running_job(job_id)
             
-            job = self.jobstore.get_job(job_id)
+            job = self.jobstore.get_jobs(job_id)[0]
 
             self._call_executor(job)
 
@@ -136,7 +136,7 @@ class WorkerBase:
     def _get_origin_job_id(self, job: Job) -> str:
         parent_job = job
         while parent_job.parent_job_id is not None:
-            parent_job = self.jobstore.get_job(parent_job.parent_job_id)
+            parent_job = self.jobstore.get_jobs(parent_job.parent_job_id)[0]
         return parent_job.id
 
     def _call_executor(self, job: Job):
