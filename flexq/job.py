@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime
 
 from enum import Enum
 from typing import Dict, Hashable, List, Union
@@ -20,15 +21,10 @@ class JobIntervalNameEnum(str, Enum):
     minutes = 'minutes'
     seconds = 'seconds'
 
-
-class Job:
+class JobAbstract:
     def __init__(self, 
-            queue_name: str, 
-            args: List = [], 
-            kwargs: Dict[str, Hashable] = {}, 
             id=None, 
             status=JobStatusEnum.created.value, 
-            result=any, 
             parent_job_id: Union[str, None]=None,
             cron: Union[str, None] = None,
             interval_name: Union[JobIntervalNameEnum, None] = None,
@@ -39,15 +35,13 @@ class Job:
 
             name: Union[str, None]=None,
 
+            created_at: Union[datetime, None] = None,
+            finished_at: Union[datetime, None] = None,
+
             ) -> None:
-        self.queue_name = queue_name
-        self.args = args
-        self.kwargs = kwargs
         self.status = status
 
         self.id = id
-
-        self.result = result
 
         self.parent_job_id = parent_job_id
         
@@ -59,6 +53,33 @@ class Job:
         self.retry_delay_minutes = retry_delay_minutes
 
         self.name = name
+
+        self.created_at = created_at
+        self.finished_at = finished_at
+
+class Job(JobAbstract):
+    def __init__(self, 
+        queue_name: str, 
+        args: List = [], 
+        kwargs: Dict[str, Hashable] = {},
+        id=None, 
+        status=JobStatusEnum.created.value, 
+        parent_job_id: Union[str, None] = None, 
+        cron: Union[str, None] = None, 
+        interval_name: Union[JobIntervalNameEnum, None] = None, 
+        interval_value: int = 0, 
+        retry_until_success=False, 
+        retry_delay_minutes=0, 
+        name: Union[str, None] = None, 
+        created_at=None, 
+        finished_at=None
+        ) -> None:
+
+        super().__init__(id, status, parent_job_id, cron, interval_name, interval_value, retry_until_success, retry_delay_minutes, name, created_at, finished_at)
+
+        self.queue_name = queue_name
+        self.args = args
+        self.kwargs = kwargs
 
     def get_args_bytes(self) -> bytes:
         return pickle.dumps(self.args)
@@ -88,41 +109,26 @@ class Job:
     def __str__(self) -> str:
         return f'job_name={self.queue_name}, job_id={self.id}'
 
-class JobComposite:
+class JobComposite(JobAbstract):
     queue_name = '_flexq_job_composite'
 
     def __init__(self, 
-            *jobs: Union[Job, Pipeline, Group], 
-            parent_job_id: Union[str, None]=None, 
-            id=None, 
+        *jobs: Union[Job, Pipeline, Group], 
+        broker_for_automatic_registering=None,
 
-            status=JobStatusEnum.created.value, 
-
-            broker_for_automatic_registering=None,
-
-            cron: Union[str, None] = None,
-            interval_name: Union[JobIntervalNameEnum, None] = None,
-            interval_value: int = 0,
-            
-            retry_until_success=False,
-            retry_delay_minutes=0,
-
-            name: Union[str, None]=None,
-
+        id=None, 
+        status=JobStatusEnum.created.value, 
+        parent_job_id: Union[str, None] = None, 
+        cron: Union[str, None] = None, 
+        interval_name: Union[JobIntervalNameEnum, None] = None, 
+        interval_value: int = 0, 
+        retry_until_success=False, 
+        retry_delay_minutes=0, 
+        name: Union[str, None] = None, 
+        created_at=None, 
+        finished_at=None
         ) -> None:
-        self.parent_job_id = parent_job_id
-        self.id = id
-
-        self.status = status
-
-        self.cron = cron
-        self.interval_name = interval_name
-        self.interval_value = interval_value
-
-        self.retry_until_success = retry_until_success
-        self.retry_delay_minutes = retry_delay_minutes
-
-        self.name = name
+        super().__init__(id, status, parent_job_id, cron, interval_name, interval_value, retry_until_success, retry_delay_minutes, name, created_at, finished_at)
 
         self.broker_for_automatic_registering = broker_for_automatic_registering
 

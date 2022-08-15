@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import logging
 from typing import Dict, List, Tuple, Union
 from flexq.exceptions.broker import FailedToEnqueueJob, UnknownSchedulingMethod
@@ -92,6 +93,8 @@ class Broker:
             self.launch_job(job)
 
     def _add_scheduler_job_if_schedule_present(self, job: Job):
+        next_run_time = None
+
         scheduler_job_id = f'scheduled_job_{job.id}'
         if job.cron is not None:
             minute, hour, month_day, month, week_day = job.cron.split(' ')
@@ -107,12 +110,16 @@ class Broker:
             trigger = IntervalTrigger(
                 **kwargs
             )
+            if isinstance(datetime, job.finished_at):
+                next_run_time = job.finished_at + timedelta(**kwargs)
+            else:
+                next_run_time = datetime.now() + timedelta(**kwargs)
         else:
-            return
+            return            
 
         present_jobs = [x.id for x in self.scheduler.get_jobs()]
         if scheduler_job_id not in present_jobs:
-            self.scheduler.add_job(self.try_relaunch_job, args=(job.id, ), trigger=trigger, id=scheduler_job_id, coalesce=True)
+            self.scheduler.add_job(self.try_relaunch_job, args=(job.id, ), trigger=trigger, id=scheduler_job_id, coalesce=True, next_run_time=next_run_time)
             logging.debug(f'added scheduled_job for job {job} as id {scheduler_job_id}')
 
     def _remove_scheduler_job_if_present(self, job_id: str):

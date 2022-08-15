@@ -22,9 +22,6 @@ class JobStoreBase:
     def add_job_to_store(self, job: Job) -> str:
         pass
 
-    def update_job_in_store(self, job: Job):
-        pass
-
     def remove_job_from_store(self, job_id: str):
         pass
 

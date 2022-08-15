@@ -74,13 +74,6 @@ class PostgresJobStore(JobStoreBase):
 
         return job.id
 
-    def update_job_in_store(self, job: Job) -> str:
-        query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET (job_queue_name, args, kwargs, parent_job_id, status) = (%s, %s, %s, %s, %s) WHERE id = %s
-        """
-        with self.conn.cursor() as curs:
-            curs.execute(query, (job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.status, job.id))
-
     def remove_job_from_store(self, job_id: str):
         query = f"""
         DELETE FROM {schema_name}.{job_instances_table_name} WHERE id = %s
@@ -97,7 +90,7 @@ class PostgresJobStore(JobStoreBase):
             return [x[0] for x in curs.fetchall()]
 
     def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False) -> Union[List[Job], None]:
-        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, id"
+        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, id, created_at, finished_at"
 
         if include_result:
             fields_to_select += ", result"
@@ -128,7 +121,6 @@ class PostgresJobStore(JobStoreBase):
             jobs = []
             for result in results:
                 job = Job(
-                    id=result[11], 
                     queue_name=result[0], 
                     status=result[3], 
                     parent_job_id=result[4],
@@ -138,11 +130,14 @@ class PostgresJobStore(JobStoreBase):
                     cron=result[8],
                     interval_name=result[9],
                     interval_value=result[10],
+                    id=result[11], 
+                    created_at=result[12],
+                    finished_at=result[13],
                     )
                 job.set_args_bytes(result[1])
                 job.set_kwargs_bytes(result[2])
                 if include_result:
-                    job.set_result_bytes(result[12])
+                    job.set_result_bytes(result[14])
                 jobs.append(job)
 
             return jobs
