@@ -122,8 +122,7 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, args)
-            logging.info('query:', query, args)
-            logging.info('morg:', curs.mogrify(query, args))
+            logging.info(f'query: {query}, {args}')
             results = curs.fetchall()
 
             if results is None or len(results) == 0:
