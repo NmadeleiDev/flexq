@@ -101,6 +101,7 @@ class WorkerBase:
         elif self.jobstore.try_acknowledge_job(job_id):
             logging.debug(f'Acknowledged job_id={job_id}')
             self._add_running_job(job_id)
+            self.jobstore.set_job_last_heartbeat_ts_to_now(job_id)
             
             job = self.jobstore.get_jobs(job_id)[0]
 
