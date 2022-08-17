@@ -84,7 +84,7 @@ class Broker:
         # если кол-во незавершенных ок - поставить status=created
         # отослать launch job
         
-        logging.debug(f'Trying to relaunch job_id={job_id}, do_send_launch={do_send_launch}')
+        logging.debug(f'Trying to relaunch job_id={job_id}, do_send_launch={do_send_launch}, relaunch_if_acknowledged={relaunch_if_acknowledged}')
         try:
             job = self.jobstore.get_jobs(job_id)[0]
         except JobNotFoundInStore:
