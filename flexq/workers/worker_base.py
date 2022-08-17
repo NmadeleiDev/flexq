@@ -1,4 +1,7 @@
+from copy import copy
 import logging
+from threading import Thread
+from time import sleep
 from typing import Callable, Union
 from flexq import job
 from flexq.executor import Executor
@@ -10,7 +13,7 @@ import traceback
 
 
 class WorkerBase:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, run_inspection_every_n_minutes=2) -> None:
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_every_n_minutes=2) -> None:
         self.executors = {}
         self.running_jobs = set([])
 
@@ -20,7 +23,7 @@ class WorkerBase:
         self.store_results = store_results
         self.max_parallel_executors = max_parallel_executors
 
-        self.run_inspection_every_n_minutes = run_inspection_every_n_minutes
+        self.update_heartbeat_every_n_minutes = update_heartbeat_every_n_minutes
 
     def _acquire_lock(self):
         pass
@@ -177,6 +180,18 @@ class WorkerBase:
 
     def wait_for_work(self):
         self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)
+
+        Thread(target=self.start_updating_heartbeat, daemon=True).start()
+
+    def start_updating_heartbeat(self):
+        self._acquire_lock()
+        running_jobs = copy(self.running_jobs)
+        self._release_lock()
+
+        for job_id in running_jobs:
+            self.jobstore.set_job_last_heartbeat_ts_to_now(job_id)
+
+        sleep(self.update_heartbeat_every_n_minutes * 60)
 
     def _todo_callback(self, job_name: str, job_id: str):
         pass

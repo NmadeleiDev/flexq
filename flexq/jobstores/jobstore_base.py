@@ -28,7 +28,7 @@ class JobStoreBase:
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         pass
 
-    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False) -> Union[List[Job], None]:
+    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False, retry_until_success_only=False, last_heartbeat_ts_more_than_n_minutes_ago:Union[int, None] = None) -> Union[List[Job], None]:
         pass
 
     def get_job_user_status(self, job_id: str) -> str:
@@ -41,4 +41,7 @@ class JobStoreBase:
         pass
 
     def set_job_parent_id(self, job_id: str, parent_job_id: str):
+        pass
+
+    def set_job_last_heartbeat_ts_to_now(self, job_id: str):
         pass

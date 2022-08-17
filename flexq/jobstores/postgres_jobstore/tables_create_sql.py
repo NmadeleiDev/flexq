@@ -39,6 +39,8 @@ create table if not exists {schema_name}.{job_instances_table_name}
 
     user_status varchar default null,
 
+    last_heartbeat_ts   timestamp default null,
+
     created_at             timestamp default now(),
     finished_at             timestamp default null,
 

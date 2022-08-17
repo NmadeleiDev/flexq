@@ -30,13 +30,15 @@ class JobAbstract:
             interval_name: Union[JobIntervalNameEnum, None] = None,
             interval_value: int = 0,
 
-            retry_until_success=False,
-            retry_delay_minutes=0,
+            retry_until_success:bool=False,
+            retry_delay_minutes:int=0,
 
             name: Union[str, None]=None,
 
             created_at: Union[datetime, None] = None,
             finished_at: Union[datetime, None] = None,
+
+            last_heartbeat_ts: Union[datetime, None] = None,
 
             ) -> None:
         self.status = status
@@ -56,6 +58,8 @@ class JobAbstract:
 
         self.created_at = created_at
         self.finished_at = finished_at
+
+        self.last_heartbeat_ts = last_heartbeat_ts
 
         self.kwargs = {}
         self.args = []

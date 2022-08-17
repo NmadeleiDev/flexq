@@ -89,7 +89,7 @@ class PostgresJobStore(JobStoreBase):
             curs.execute(query, (parent_job_id,))
             return [x[0] for x in curs.fetchall()]
 
-    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False) -> Union[List[Job], None]:
+    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False, retry_until_success_only=False, last_heartbeat_ts_more_than_n_minutes_ago:Union[int, None] = None) -> Union[List[Job], None]:
         fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, id, created_at, finished_at"
 
         if include_result:
@@ -102,6 +102,11 @@ class PostgresJobStore(JobStoreBase):
             args.append(job_id)
         if with_schedule_only:
             where_part.append('cron is not null or interval_name is not null')
+        if retry_until_success_only:
+            where_part.append('retry_until_success = true')
+        if last_heartbeat_ts_more_than_n_minutes_ago is not None:
+            where_part.append("last_heartbeat_ts < now() - interval '%s minutes'")
+            args.append(last_heartbeat_ts_more_than_n_minutes_ago)
         
         if len(where_part) > 0:
             where_part_str = ' WHERE ' + ' AND '.join([f'({x})' for x in where_part])
@@ -178,3 +183,10 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (parent_job_id, job_id))
+
+    def set_job_last_heartbeat_ts_to_now(self, job_id: str):
+        query = f"""
+        UPDATE {schema_name}.{job_instances_table_name} SET last_heartbeat_ts = now() WHERE id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (job_id, ))
