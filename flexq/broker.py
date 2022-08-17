@@ -58,10 +58,11 @@ class Broker:
         for to_launch_job_id, to_launch_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_and_queue_names():
             self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notifycation_type=NotificationTypeEnum.todo.value, payload=to_launch_job_id)
 
-        for job in self.jobstore.get_jobs(retry_until_success_only=True):
-            self.try_relaunch_job(job.id)
+        for job in self.jobstore.get_jobs(retry_until_success_only=True, status=JobStatusEnum.failed.value):
+            if (datetime.now() - job.finished_at).minutes > job.retry_delay_minutes:
+                self.try_relaunch_job(job.id)
 
-        for job in self.jobstore.get_jobs(last_heartbeat_ts_more_than_n_minutes_ago=5):
+        for job in self.jobstore.get_jobs(last_heartbeat_ts_more_than_n_minutes_ago=5, status=JobStatusEnum.acknowledged.value):
             logging.debug(f'seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), will retry it')
             self.try_relaunch_job(job.id)
         

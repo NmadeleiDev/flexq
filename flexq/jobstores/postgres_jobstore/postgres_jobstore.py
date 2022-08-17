@@ -89,7 +89,7 @@ class PostgresJobStore(JobStoreBase):
             curs.execute(query, (parent_job_id,))
             return [x[0] for x in curs.fetchall()]
 
-    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False, retry_until_success_only=False, last_heartbeat_ts_more_than_n_minutes_ago:Union[int, None] = None) -> Union[List[Job], None]:
+    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False, retry_until_success_only=False, last_heartbeat_ts_more_than_n_minutes_ago:Union[int, None] = None, status: Union[JobStatusEnum, None] = None) -> Union[List[Job], None]:
         fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, id, created_at, finished_at"
 
         if include_result:
@@ -107,6 +107,9 @@ class PostgresJobStore(JobStoreBase):
         if last_heartbeat_ts_more_than_n_minutes_ago is not None:
             where_part.append("last_heartbeat_ts < now() - interval '%s minutes'")
             args.append(last_heartbeat_ts_more_than_n_minutes_ago)
+        if status is not None:
+            where_part.append("status = %s")
+            args.append(status)
         
         if len(where_part) > 0:
             where_part_str = ' WHERE ' + ' AND '.join([f'({x})' for x in where_part])
