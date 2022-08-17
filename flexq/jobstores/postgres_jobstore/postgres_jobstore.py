@@ -109,7 +109,7 @@ class PostgresJobStore(JobStoreBase):
             where_part.append("last_heartbeat_ts is null or (last_heartbeat_ts < now() - interval '%s minutes')")
             args.append(last_heartbeat_ts_more_than_n_minutes_ago)
         if status is not None:
-            where_part.append("status = %s")
+            where_part.append('status = %s')
             args.append(status)
         
         if len(where_part) > 0:
@@ -122,7 +122,8 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, args)
-            logging.debug('morg:', curs.mogrify(query, args))
+            logging.info('query:', query, args)
+            logging.info('morg:', curs.mogrify(query, args))
             results = curs.fetchall()
 
             if results is None or len(results) == 0:
