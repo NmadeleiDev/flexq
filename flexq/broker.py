@@ -62,6 +62,7 @@ class Broker:
         if retry_until_success_jobs is not None:
             for job in retry_until_success_jobs:
                 if (datetime.now() - job.finished_at).total_seconds() / 60 > job.retry_delay_minutes:
+                    logging.debug(f'relaunching job {job} since it is in failed state and finished more than {job.retry_delay_minutes} minutes ago (finished_at={job.finished_at})')
                     self.try_relaunch_job(job.id)
 
         missed_heartbeat_jobs = self.jobstore.get_jobs(last_heartbeat_ts_more_than_n_minutes_ago=5, status=JobStatusEnum.acknowledged.value)

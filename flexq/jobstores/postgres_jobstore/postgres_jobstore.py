@@ -105,7 +105,7 @@ class PostgresJobStore(JobStoreBase):
         if retry_until_success_only:
             where_part.append('retry_until_success = true')
         if last_heartbeat_ts_more_than_n_minutes_ago is not None:
-            where_part.append("last_heartbeat_ts < now() - interval '%s minutes'")
+            where_part.append("last_heartbeat_ts is null or (last_heartbeat_ts < now() - interval '%s minutes)'")
             args.append(last_heartbeat_ts_more_than_n_minutes_ago)
         if status is not None:
             where_part.append("status = %s")
