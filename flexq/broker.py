@@ -69,7 +69,7 @@ class Broker:
         if missed_heartbeat_jobs is not None:
             for job in missed_heartbeat_jobs:
                 logging.debug(f'seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), will retry it')
-                self.try_relaunch_job(job.id)
+                self.try_relaunch_job(job.id, relaunch_if_acknowledged=True)
         
 
     def init_scheduled_jobs(self):
@@ -78,7 +78,7 @@ class Broker:
             self._add_scheduler_job_if_schedule_present(job)
         self.scheduler.wakeup()
 
-    def try_relaunch_job(self, job_id: str, do_send_launch=True):
+    def try_relaunch_job(self, job_id: str, do_send_launch=True, relaunch_if_acknowledged=False):
         # получить job
         # посчитать кол-во не завершенных реплик (по parent_id)
         # если кол-во незавершенных ок - поставить status=created
@@ -93,9 +93,9 @@ class Broker:
 
         children = self.jobstore.get_child_job_ids(job_id)
         for child_job_id in children:
-            self.try_relaunch_job(child_job_id, do_send_launch=False)
+            self.try_relaunch_job(child_job_id, do_send_launch=False, relaunch_if_acknowledged=relaunch_if_acknowledged)
 
-        if job.status == JobStatusEnum.acknowledged.value:
+        if job.status == JobStatusEnum.acknowledged.value and not relaunch_if_acknowledged:
             logging.debug(f'unable to launch job name={job.queue_name}, id={job.id} since latest execution is not finished yet')
             return
 
