@@ -65,7 +65,7 @@ class Broker:
                     logging.debug(f'relaunching job {job} since it is in failed state and finished more than {job.retry_delay_minutes} minutes ago (finished_at={job.finished_at})')
                     self.try_relaunch_job(job.id)
 
-        missed_heartbeat_jobs = self.jobstore.get_jobs(last_heartbeat_ts_more_than_n_minutes_ago=5, status=JobStatusEnum.acknowledged.value)
+        missed_heartbeat_jobs = self.jobstore.get_jobs(heartbeat_missed_by_more_than_n_seconds=60, status=JobStatusEnum.acknowledged.value) # composite jobs сюда никогда не попадут, т.к. мы их никогда не acknowledge
         if missed_heartbeat_jobs is not None:
             for job in missed_heartbeat_jobs:
                 logging.debug(f'seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), will retry it')

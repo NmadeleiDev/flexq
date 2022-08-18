@@ -13,7 +13,7 @@ import traceback
 
 
 class WorkerBase:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_every_n_minutes=2) -> None:
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_interval_seconds=60) -> None:
         self.executors = {}
         self.running_jobs = set([])
 
@@ -23,7 +23,7 @@ class WorkerBase:
         self.store_results = store_results
         self.max_parallel_executors = max_parallel_executors
 
-        self.update_heartbeat_every_n_minutes = update_heartbeat_every_n_minutes
+        self.update_heartbeat_interval_seconds = update_heartbeat_interval_seconds
 
     def _acquire_lock(self):
         pass
@@ -73,7 +73,7 @@ class WorkerBase:
                 successfull_jobs_count = 0
                 child_jobs = self.jobstore.get_child_job_ids(job.id)
 
-                for inpipe_job_id in child_jobs: # но по порядку
+                for inpipe_job_id in child_jobs:
                     inpipe_job = self.jobstore.get_jobs(inpipe_job_id)[0]
                     if inpipe_job.status == JobStatusEnum.success:
                         successfull_jobs_count += 1
@@ -98,7 +98,7 @@ class WorkerBase:
                 raise UnknownJobExecutor(f'Unknown composite type: {job.queue_name}')
 
             self._remove_running_job(job_id)
-        elif self.jobstore.try_acknowledge_job(job_id):
+        elif self.jobstore.try_acknowledge_job(job_id, self.update_heartbeat_interval_seconds):
             logging.debug(f'Acknowledged job_id={job_id}')
             self._add_running_job(job_id)
             self.jobstore.set_job_last_heartbeat_ts_to_now(job_id)
@@ -107,11 +107,11 @@ class WorkerBase:
 
             self._call_executor(job)
 
-            self.jobstore.set_status_for_job(job_id, job.status)
-
             if job.status == JobStatusEnum.success:
                 if self.store_results and job.result is not None:
                     self.jobstore.save_result_for_job(job_id, job.get_result_bytes())
+
+            self.jobstore.set_status_for_job(job_id, job.status)
 
             self._remove_running_job(job_id)
         else:
@@ -192,7 +192,7 @@ class WorkerBase:
         for job_id in running_jobs:
             self.jobstore.set_job_last_heartbeat_ts_to_now(job_id)
 
-        sleep(self.update_heartbeat_every_n_minutes * 60)
+        sleep(self.update_heartbeat_interval_seconds)
 
     def _todo_callback(self, job_name: str, job_id: str):
         pass

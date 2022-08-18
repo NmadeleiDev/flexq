@@ -7,7 +7,7 @@ class JobStoreBase:
         pass
 
     # вызывается воркером после получения работы в _todo_callback
-    def try_acknowledge_job(self, job_id: str) -> bool:
+    def try_acknowledge_job(self, job_id: str, worker_heartbeat_interval_seconds: int) -> bool:
         pass
 
     # вызывается воркером после завершения работы

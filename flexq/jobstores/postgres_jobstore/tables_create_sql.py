@@ -40,6 +40,7 @@ create table if not exists {schema_name}.{job_instances_table_name}
     user_status varchar default null,
 
     last_heartbeat_ts   timestamp default null,
+    worker_heartbeat_interval_seconds   integer default 0,
 
     created_at             timestamp default now(),
     finished_at             timestamp default null,
