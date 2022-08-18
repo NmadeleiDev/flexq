@@ -11,8 +11,8 @@ from flexq.workers.worker_base import WorkerBase
 
 
 class ThreadingWorker(WorkerBase):
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors: Union[int, None] = None, store_results=True, update_heartbeat_every_n_minutes=2) -> None:
-        super().__init__(jobstore, jobqueue, max_parallel_executors, store_results, update_heartbeat_every_n_minutes)
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
 
         self._lock = Lock()
 
