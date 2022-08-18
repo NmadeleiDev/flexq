@@ -11,8 +11,8 @@ from flexq.workers.worker_base import WorkerBase
 
 
 class ThreadingWorker(WorkerBase):
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
         self._lock = Lock()
 
