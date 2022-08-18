@@ -70,7 +70,6 @@ class Broker:
             for job in missed_heartbeat_jobs:
                 logging.debug(f'seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), will retry it')
                 self.try_relaunch_job(job.id, relaunch_if_acknowledged=True)
-        
 
     def init_scheduled_jobs(self):
         scheduled_jobs = self.jobstore.get_jobs(with_schedule_only=True)
