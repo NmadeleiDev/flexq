@@ -200,7 +200,7 @@ class WorkerBase:
             raise ValueError(f'n_processes can not be less than 1 (passed {self.n_processes})')
         if self.n_processes > 1:
             for i in range(self.n_processes - 1):
-                Process(target=self._wait_for_work, kwargs={'process_idx', i}).start()
+                Process(target=self._wait_for_work, kwargs=dict(process_idx=i)).start()
 
         Process(target=self._wait_for_work).start()
 
