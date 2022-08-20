@@ -4,7 +4,6 @@ from multiprocessing import Process
 from threading import Thread
 from time import sleep
 from typing import Callable, Union
-from flexq import job
 from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor
 from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline
@@ -12,8 +11,6 @@ from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 
 import traceback
-
-from os import fork
 
 class WorkerBase:
     def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_interval_seconds=60, n_processes=1) -> None:
