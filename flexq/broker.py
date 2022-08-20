@@ -18,6 +18,9 @@ class Broker:
         self.jobstore = jobstore
         self.jobqueue = jobqueue
 
+        self.jobstore.init_conn()
+        self.jobqueue.init_conn()
+
         self.run_inspection_every_n_minutes = run_inspection_every_n_minutes
 
         self.is_master = is_master
