@@ -4,6 +4,12 @@ from flexq.job import Job, JobStatusEnum
 
 class JobStoreBase:
     def __init__(self) -> None:
+        """
+        It's important that JobStore object do not create anything unpickable in __init__. Creation of all connections must be in self.init_conn
+        """
+        pass
+
+    def init_conn(self):
         pass
 
     # вызывается воркером после получения работы в _todo_callback

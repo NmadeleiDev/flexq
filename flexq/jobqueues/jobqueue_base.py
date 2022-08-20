@@ -6,7 +6,13 @@ class JobQueueBase:
     parts_join_char = "__"
     
     def __init__(self) -> None:
+        """
+        It's important that JobStore object do not create anything unpickable in __init__. Creation of all connections must be in self.init_conn
+        """
         self.todo_callback = None
+    
+    def init_conn(self):
+        pass
 
     def subscribe_to_queues(self, 
             queues_names: List[str], 

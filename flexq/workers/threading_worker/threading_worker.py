@@ -1,19 +1,15 @@
 import logging
 from threading import Lock, Thread
 from typing import Callable, Union
-from flexq.exceptions.worker import RunningJobDuplicate, UnknownJobExecutor
 
 from flexq.job import JobComposite, JobStatusEnum, Pipeline, Group
-from flexq.jobqueues.jobqueue_base import JobQueueBase
-from flexq.jobstores.jobstore_base import JobStoreBase
 
 from flexq.workers.worker_base import WorkerBase
 
 
 class ThreadingWorker(WorkerBase):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
+    def _before_start_routine(self):
+        super()._before_start_routine()
         self._lock = Lock()
 
     def _acquire_lock(self):
@@ -38,10 +34,3 @@ class ThreadingWorker(WorkerBase):
 
         job_thread = Thread(target=self._try_start_job, args=(job_name, job_id), daemon=True)
         job_thread.start()
-
-    # def _abort_callback(self, job_id: str):
-    #     if job_id in self.running_jobs.keys():
-    #         logging.debug(f'aborting job_id={job_id}')
-    #         job_thread = self.running_jobs[job_id]
-    #         if 
-

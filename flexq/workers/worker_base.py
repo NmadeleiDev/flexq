@@ -1,5 +1,6 @@
 from copy import copy
 import logging
+from multiprocessing import Process
 from threading import Thread
 from time import sleep
 from typing import Callable, Union
@@ -9,11 +10,13 @@ from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor
 from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
+
 import traceback
 
+from os import fork
 
 class WorkerBase:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_interval_seconds=60) -> None:
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_interval_seconds=60, n_processes=1) -> None:
         self.executors = {}
         self.running_jobs = set([])
 
@@ -24,6 +27,12 @@ class WorkerBase:
         self.max_parallel_executors = max_parallel_executors
 
         self.update_heartbeat_interval_seconds = update_heartbeat_interval_seconds
+
+        self.n_processes = n_processes
+
+    def _before_start_routine(self):
+        self.jobstore.init_conn()
+        self.jobqueue.init_conn()
 
     def _acquire_lock(self):
         pass
@@ -179,25 +188,43 @@ class WorkerBase:
 
         logging.debug(f'job {job} execution completed with status: {job.status}')
 
-    def wait_for_work(self):
-        self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)
-
+    def _start_routine(self):
         Thread(target=self.start_updating_heartbeat, daemon=True).start()
 
+        self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)
+
+    def _wait_for_work(self, process_idx=None):
+        logging.debug(f'starting work in process_idx={process_idx}')
+        self._before_start_routine()
+        self._start_routine()
+
+    def wait_for_work(self):
+        if self.n_processes < 1:
+            raise ValueError(f'n_processes can not be less than 1 (passed {self.n_processes})')
+        if self.n_processes > 1:
+            for i in range(self.n_processes - 1):
+                Process(target=self._wait_for_work, kwargs={'process_idx', i}).start()
+
+        Process(target=self._wait_for_work).start()
+
     def start_updating_heartbeat(self):
-        self._acquire_lock()
-        running_jobs = copy(self.running_jobs)
-        self._release_lock()
+        while True:
+            self._acquire_lock()
+            running_jobs = copy(self.running_jobs)
+            self._release_lock()
 
-        for job_id in running_jobs:
-            self.jobstore.set_job_last_heartbeat_ts_to_now(job_id)
+            for job_id in running_jobs:
+                self.jobstore.set_job_last_heartbeat_ts_to_now(job_id)
 
-        sleep(self.update_heartbeat_interval_seconds)
+            sleep(self.update_heartbeat_interval_seconds)
 
     def _todo_callback(self, job_name: str, job_id: str):
         pass
 
     def _abort_callback(self, job_id: str):
+        """
+        Planned to be implemented
+        """
         pass
 
     

@@ -1,4 +1,3 @@
-from ast import arg
 import logging
 from typing import List, Tuple, Union
 from flexq.exceptions.jobstore import JobNotFoundInStore
@@ -12,6 +11,8 @@ from .tables_create_sql import job_instances_table_create_query, job_status_enum
 class PostgresJobStore(JobStoreBase):
     def __init__(self, dsn: str) -> None:
         self.dsn = dsn
+
+    def init_conn(self):
         self._init_db()
         self._init_tables()
 
