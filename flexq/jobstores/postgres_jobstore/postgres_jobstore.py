@@ -17,7 +17,6 @@ class PostgresJobStore(JobStoreBase):
         self._init_tables()
 
     def _init_db(self):
-        # TODO: сделать JobStore сериализуемым, т.е. не хранить conn как аттрибут self (подключаться в каждой фукнции просто)
         self.conn = psycopg2.connect(self.dsn)
         self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
@@ -34,7 +33,7 @@ class PostgresJobStore(JobStoreBase):
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (JobStatusEnum.acknowledged.value, worker_heartbeat_interval_seconds, job_id, JobStatusEnum.created.value))
-            return curs.rowcount == 1 # TODO: протестить, что rowcount == 1 всегда только в одном вызове
+            return curs.rowcount == 1
 
     def set_status_for_job(self, job_id: str, status: JobStatusEnum) -> None:
         if status in (JobStatusEnum.success.value, JobStatusEnum.failed.value):
