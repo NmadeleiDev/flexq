@@ -13,9 +13,9 @@ from flexq.jobstores.jobstore_base import JobStoreBase
 import traceback
 
 class WorkerBase:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_interval_seconds=60, n_processes=1) -> None:
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors:Union[int, None]=None, store_results=True, update_heartbeat_interval_seconds=60) -> None:
         self.executors = {}
-        self.running_jobs = set([])
+        self.running_jobs = []
 
         self.jobstore = jobstore
         self.jobqueue = jobqueue
@@ -24,8 +24,6 @@ class WorkerBase:
         self.max_parallel_executors = max_parallel_executors
 
         self.update_heartbeat_interval_seconds = update_heartbeat_interval_seconds
-
-        self.n_processes = n_processes
 
     def _before_start_routine(self):
         self.jobstore.init_conn()
@@ -132,7 +130,7 @@ class WorkerBase:
 
     def _add_running_job(self, job_id: str):
         self._acquire_lock()
-        self.running_jobs.add(job_id)
+        self.running_jobs.append(job_id)
         self._release_lock()
 
     def _remove_running_job(self, job_id: str):
@@ -196,13 +194,7 @@ class WorkerBase:
         self._start_routine()
 
     def wait_for_work(self):
-        if self.n_processes < 1:
-            raise ValueError(f'n_processes can not be less than 1 (passed {self.n_processes})')
-        if self.n_processes > 1:
-            for i in range(self.n_processes - 1):
-                Process(target=self._wait_for_work, kwargs=dict(process_idx=i)).start()
-
-        Process(target=self._wait_for_work).start()
+        self._wait_for_work()
 
     def start_updating_heartbeat(self):
         while True:

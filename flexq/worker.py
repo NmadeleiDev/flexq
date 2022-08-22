@@ -1,1 +1,2 @@
-from .workers.threading_worker.threading_worker import ThreadingWorker
+from .workers.threading_worker.thread_worker import ThreadWorker
+from .workers.threading_worker.process_worker import ProcessWorker

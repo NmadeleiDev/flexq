@@ -1,16 +1,18 @@
 import logging
-from threading import Lock, Thread
-from typing import Callable, Union
+from multiprocessing import Lock, Process, Manager
 
 from flexq.job import JobComposite, JobStatusEnum, Pipeline, Group
 
 from flexq.workers.worker_base import WorkerBase
 
 
-class ThreadingWorker(WorkerBase):
+class ProcessWorker(WorkerBase):
     def _before_start_routine(self):
         super()._before_start_routine()
         self._lock = Lock()
+
+        manager = Manager()
+        self.running_jobs = manager.list()
 
     def _acquire_lock(self):
         self._lock.acquire()
@@ -32,5 +34,5 @@ class ThreadingWorker(WorkerBase):
             logging.info(f'skipping job job_name={job_name}, job_id={job_id} due to max amount of parallel executors running')
             return
 
-        job_thread = Thread(target=self._try_start_job, args=(job_name, job_id), daemon=True)
-        job_thread.start()
+        job_process = Process(target=self._try_start_job, args=(job_name, job_id))
+        job_process.start()
