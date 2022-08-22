@@ -8,7 +8,7 @@ from flexq.workers.worker_base import WorkerBase
 
 class ProcessWorker(WorkerBase):
     def _before_start_routine(self):
-        super()._before_start_routine()
+        # super()._before_start_routine() тут вызов перенесен в _todo_callback, чтобы подключение существовало в каждом процессе
         manager = Manager()
 
         self._lock = manager.Lock()
@@ -26,6 +26,8 @@ class ProcessWorker(WorkerBase):
         if job_id in self.running_jobs:
             logging.warn(f'job {job_name} with id={job_id} passed to _todo_callback, but it is already in self.running_jobs (ignore if it is composite job, they are not acknowledged)')
             return
+
+        super()._before_start_routine()
 
         if job_name not in self.executors.keys():
             if job_name not in (Pipeline.queue_name, Group.queue_name, JobComposite.queue_name):
