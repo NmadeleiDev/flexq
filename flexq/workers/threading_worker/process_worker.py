@@ -1,5 +1,5 @@
 import logging
-from multiprocessing import Lock, Process, Manager
+from multiprocessing import Process, Manager
 
 from flexq.job import JobComposite, JobStatusEnum, Pipeline, Group
 
@@ -9,9 +9,10 @@ from flexq.workers.worker_base import WorkerBase
 class ProcessWorker(WorkerBase):
     def _before_start_routine(self):
         super()._before_start_routine()
-        self._lock = Lock()
-
         manager = Manager()
+
+        self._lock = manager.Lock()
+
         self.running_jobs = manager.list()
 
     def _acquire_lock(self):
