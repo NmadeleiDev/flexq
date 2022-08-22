@@ -44,6 +44,7 @@ create table if not exists {schema_name}.{job_instances_table_name}
 
     created_at             timestamp default now(),
     finished_at             timestamp default null,
+    started_at             timestamp default null,
 
     CONSTRAINT fk_{job_instances_table_name}
       FOREIGN KEY(parent_job_id) 

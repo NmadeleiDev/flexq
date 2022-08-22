@@ -49,5 +49,5 @@ class JobStoreBase:
     def set_job_parent_id(self, job_id: str, parent_job_id: str):
         pass
 
-    def set_job_last_heartbeat_ts_to_now(self, job_id: str):
+    def set_job_last_heartbeat_and_start_ts_to_now(self, job_id: str):
         pass

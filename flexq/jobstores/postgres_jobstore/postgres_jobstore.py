@@ -189,9 +189,9 @@ class PostgresJobStore(JobStoreBase):
         with self.conn.cursor() as curs:
             curs.execute(query, (parent_job_id, job_id))
 
-    def set_job_last_heartbeat_ts_to_now(self, job_id: str):
+    def set_job_last_heartbeat_and_start_ts_to_now(self, job_id: str):
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET last_heartbeat_ts = now() WHERE id = %s
+        UPDATE {schema_name}.{job_instances_table_name} SET last_heartbeat_ts = now(), started_at = now() WHERE id = %s
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (job_id, ))
