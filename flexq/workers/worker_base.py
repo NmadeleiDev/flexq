@@ -2,7 +2,7 @@ from copy import copy
 import logging
 from threading import Thread
 from time import sleep
-from typing import Callable, Union
+from typing import Callable, Type, Union
 from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor
 from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline
@@ -34,9 +34,9 @@ class WorkerBase:
     def _release_lock(self):
         pass
 
-    def add_job_executor(self, cb: Union[Callable, Executor], name: Union[str, None] = None):
-        if isinstance(cb, Executor) and name is None:
-            executor_name = type(cb).__name__
+    def add_job_executor(self, cb: Union[Callable, Type[Executor]], name: Union[str, None] = None):
+        if isinstance(cb, type(Executor)) and name is None:
+            executor_name = cb.__name__
         elif name is None:
             raise ValueError('name must not be None if cb is not and Executor')
         else:
