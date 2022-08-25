@@ -1,6 +1,5 @@
 from copy import copy
 import logging
-from multiprocessing import Process
 from threading import Thread
 from time import sleep
 from typing import Callable, Union
@@ -35,11 +34,18 @@ class WorkerBase:
     def _release_lock(self):
         pass
 
-    def add_job_executor(self, name: str, cb: Union[Callable, Executor]):
-        if name not in self.executors.keys():
-            self.executors[name] = cb
+    def add_job_executor(self, cb: Union[Callable, Executor], name: Union[str, None] = None):
+        if isinstance(cb, Executor) and name is None:
+            executor_name = type(cb).__name__
+        elif name is None:
+            raise ValueError('name must not be None if cb is not and Executor')
         else:
-            raise JobExecutorExists(f'Job executor name "{name}" exists. Add executor with other name.')
+            executor_name = name
+
+        if executor_name not in self.executors.keys():
+            self.executors[executor_name] = cb
+        else:
+            raise JobExecutorExists(f'Job executor name "{executor_name}" exists. Add executor with other name.')
 
     def _try_start_job(self, job_name: str, job_id: str):
         # пытаемся добавить работу в poll - есть успешно добавлась (т.е. ее там еще не было) , начинаем выполнять
