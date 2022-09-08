@@ -40,7 +40,7 @@ class Broker:
         return job
 
     def launch_job(self, job: Union[Job, Group, Pipeline]):
-        self.jobqueue.send_notify_to_queue(queue_name=job.queue_name, notifycation_type=NotificationTypeEnum.todo.value, payload=job.id)
+        self.jobqueue.send_notify_to_queue(queue_name=job.queue_name, notifycation_type=NotificationTypeEnum.todo, payload=job.id)
 
     def remove_job(self, job_id: str):
         self.jobstore.remove_job_from_store(job_id)
@@ -59,16 +59,20 @@ class Broker:
 
     def inspect_running_jobs(self):
         for to_launch_job_id, to_launch_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_and_queue_names():
-            self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notifycation_type=NotificationTypeEnum.todo.value, payload=to_launch_job_id)
+            self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notifycation_type=NotificationTypeEnum.todo, payload=to_launch_job_id)
 
-        retry_until_success_jobs = self.jobstore.get_jobs(retry_until_success_only=True, status=JobStatusEnum.failed.value)
+        retry_until_success_jobs = self.jobstore.get_jobs(retry_until_success_only=True, status=JobStatusEnum.failed)
         if retry_until_success_jobs is not None:
             for job in retry_until_success_jobs:
                 if (datetime.now() - job.finished_at).total_seconds() / 60 > job.retry_delay_minutes:
                     logging.debug(f'relaunching job {job} since it is in failed state and finished more than {job.retry_delay_minutes} minutes ago (finished_at={job.finished_at})')
                     self.try_relaunch_job(job.id)
 
-        missed_heartbeat_jobs = self.jobstore.get_jobs(heartbeat_missed_by_more_than_n_seconds=60, status=JobStatusEnum.acknowledged.value) # composite jobs сюда никогда не попадут, т.к. мы их никогда не acknowledge
+        for job in self.jobstore.get_jobs(status=JobStatusEnum.retry):
+            if job.start_timestamp >= datetime.now():
+                self.try_relaunch_job(job.id)
+
+        missed_heartbeat_jobs = self.jobstore.get_jobs(heartbeat_missed_by_more_than_n_seconds=60, status=JobStatusEnum.acknowledged) # composite jobs сюда никогда не попадут, т.к. мы их никогда не acknowledge
         if missed_heartbeat_jobs is not None:
             for job in missed_heartbeat_jobs:
                 logging.debug(f'seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), will retry it')
@@ -97,12 +101,12 @@ class Broker:
         for child_job_id in children:
             self.try_relaunch_job(child_job_id, do_send_launch=False, relaunch_if_acknowledged=relaunch_if_acknowledged)
 
-        if job.status == JobStatusEnum.acknowledged.value and not relaunch_if_acknowledged:
+        if job.status == JobStatusEnum.acknowledged and not relaunch_if_acknowledged:
             logging.debug(f'unable to launch job name={job.queue_name}, id={job.id} since latest execution is not finished yet')
             return
 
-        job.status = JobStatusEnum.created.value
-        self.jobstore.set_status_for_job(job.id, JobStatusEnum.created.value)
+        job.status = JobStatusEnum.created
+        self.jobstore.set_status_for_job(job.id, JobStatusEnum.created)
         logging.debug(f'updated job {job} status to {job.status}')
 
         if do_send_launch:
@@ -145,7 +149,3 @@ class Broker:
         if scheduler_job_id in present_jobs:
             self.scheduler.remove_job(scheduler_job_id)
             logging.debug(f'removed scheduled_job for job_id={job_id} with scheduler id = {scheduler_job_id}')
-    
-
-
-

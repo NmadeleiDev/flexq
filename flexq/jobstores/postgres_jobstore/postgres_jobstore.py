@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import List, Tuple, Union
 from flexq.exceptions.jobstore import JobNotFoundInStore
 from flexq.job import Job, JobStatusEnum
@@ -191,7 +192,14 @@ class PostgresJobStore(JobStoreBase):
 
     def set_job_last_heartbeat_and_start_ts_to_now(self, job_id: str):
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET last_heartbeat_ts = now(), started_at = now() WHERE id = %s
+        UPDATE {schema_name}.{job_instances_table_name} SET last_heartbeat_ts = now(), start_timestamp = now() WHERE id = %s
         """
         with self.conn.cursor() as curs:
             curs.execute(query, (job_id, ))
+
+    def set_job_start_ts(self, job_id: str, start_timestamp: datetime):
+        query = f"""
+        UPDATE {schema_name}.{job_instances_table_name} SET start_timestamp = %s WHERE id = %s
+        """
+        with self.conn.cursor() as curs:
+            curs.execute(query, (start_timestamp, job_id))

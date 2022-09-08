@@ -1,8 +1,10 @@
+from abc import ABC
+from datetime import datetime
 from typing import List, Tuple, Union
 from flexq.job import Job, JobStatusEnum
 
 
-class JobStoreBase:
+class JobStoreBase(ABC):
     def __init__(self) -> None:
         """
         It's important that JobStore object do not create anything unpickable in __init__. Creation of all connections must be in self.init_conn
@@ -34,7 +36,10 @@ class JobStoreBase:
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         pass
 
-    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False, retry_until_success_only=False, heartbeat_missed_by_more_than_n_seconds:Union[int, None] = None) -> Union[List[Job], None]:
+    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False,
+                 retry_until_success_only=False,
+                 heartbeat_missed_by_more_than_n_seconds: Union[int, None] = None,
+                 status: Union[JobStatusEnum, None] = None) -> Union[List[Job], None]:
         pass
 
     def get_job_user_status(self, job_id: str) -> str:
@@ -50,4 +55,7 @@ class JobStoreBase:
         pass
 
     def set_job_last_heartbeat_and_start_ts_to_now(self, job_id: str):
+        pass
+
+    def set_job_start_ts(self, job_id: str, start_timestamp: datetime):
         pass

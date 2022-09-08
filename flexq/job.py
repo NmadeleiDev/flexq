@@ -15,38 +15,42 @@ class JobStatusEnum(str, Enum):
     success = 'success'
     failed = 'failed'
     ephemeral = 'ephemeral'
+    retry = 'retry'
+
 
 class JobIntervalNameEnum(str, Enum):
     hours = 'hours'
     minutes = 'minutes'
     seconds = 'seconds'
 
+
 class JobAbstract:
-    def __init__(self, 
-            id: Union[str, None]=None, 
-            status:JobStatusEnum = JobStatusEnum.created.value, 
-            parent_job_id: Union[str, None]=None,
-            cron: Union[str, None] = None,
-            interval_name: Union[JobIntervalNameEnum, None] = None,
-            interval_value: int = 0,
+    def __init__(self,
+                 id: Union[str, None] = None,
+                 status: JobStatusEnum = JobStatusEnum.created,
+                 parent_job_id: Union[str, None] = None,
+                 cron: Union[str, None] = None,
+                 interval_name: Union[JobIntervalNameEnum, None] = None,
+                 interval_value: int = 0,
 
-            retry_until_success:bool=False,
-            retry_delay_minutes:int=0,
+                 retry_until_success: bool = False,
+                 retry_delay_minutes: int = 0,
 
-            name: Union[str, None]=None,
+                 name: Union[str, None] = None,
 
-            created_at: Union[datetime, None] = None,
-            finished_at: Union[datetime, None] = None,
+                 created_at: Union[datetime, None] = None,
+                 finished_at: Union[datetime, None] = None,
 
-            last_heartbeat_ts: Union[datetime, None] = None,
+                 last_heartbeat_ts: Union[datetime, None] = None,
 
-            ) -> None:
+                 start_timestamp: Union[datetime, None] = None,
+                 ) -> None:
         self.status = status
 
         self.id = id
 
         self.parent_job_id = parent_job_id
-        
+
         self.cron = cron
         self.interval_name = interval_name
         self.interval_value = interval_value
@@ -60,6 +64,7 @@ class JobAbstract:
         self.finished_at = finished_at
 
         self.last_heartbeat_ts = last_heartbeat_ts
+        self.start_timestamp = start_timestamp
 
         self.kwargs = {}
         self.args = []
@@ -94,16 +99,16 @@ class JobAbstract:
     def __str__(self) -> str:
         return f'job_id={self.id}'
 
+
 class Job(JobAbstract):
-    def __init__(self, 
-        queue_name: str, 
-        args: List = [], 
-        kwargs: Dict[str, Hashable] = {},
-        result: any = None,
+    def __init__(self,
+                 queue_name: str,
+                 args: List = [],
+                 kwargs: Dict[str, Hashable] = {},
+                 result: any = None,
 
-        **other_kwargs
-        ) -> None:
-
+                 **other_kwargs
+                 ) -> None:
         super().__init__(**other_kwargs)
 
         self.queue_name = queue_name
@@ -115,22 +120,23 @@ class Job(JobAbstract):
     def __str__(self) -> str:
         return f'job_name={self.queue_name}, job_id={self.id}'
 
+
 class JobComposite(JobAbstract):
     queue_name = '_flexq_job_composite'
 
-    def __init__(self, 
-        *jobs: Union[Job, Pipeline, Group], 
-        broker_for_automatic_registering=None,
-        
-        **kwargs
-        ) -> None:
+    def __init__(self,
+                 *jobs: Union[Job, Pipeline, Group],
+                 broker_for_automatic_registering=None,
+
+                 **kwargs
+                 ) -> None:
         super().__init__(**kwargs)
 
         self.broker_for_automatic_registering = broker_for_automatic_registering
 
         self.kwargs = {}
         self.args = []
-        
+
         self.broker_for_automatic_registering.register_job(self)
         for job in jobs:
             job.parent_job_id = self.id
@@ -139,20 +145,24 @@ class JobComposite(JobAbstract):
                 if hasattr(self.broker_for_automatic_registering, 'register_job'):
                     self.broker_for_automatic_registering.register_job(job)
                 else:
-                    raise JobIdIsNone(f'Job passed to {type(self).__name__} must be registered (i.e. have an id) or broker_for_automatic_registering must be passed, which is not the case with job name = {job.queue_name}')
+                    raise JobIdIsNone(
+                        f'Job passed to {type(self).__name__} must be registered (i.e. have an id) or broker_for_automatic_registering must be passed, which is not the case with job name = {job.queue_name}')
             else:
                 if hasattr(self.broker_for_automatic_registering, 'register_job'):
                     self.broker_for_automatic_registering.jobstore.set_job_parent_id(job.id, job.parent_job_id)
                 else:
-                    raise JobIdIsNone(f'{type(self).__name__} needs broker_for_automatic_registering to be passed, as job {job} must be updated to have parent_job_id.')
+                    raise JobIdIsNone(
+                        f'{type(self).__name__} needs broker_for_automatic_registering to be passed, as job {job} must be updated to have parent_job_id.')
 
             self.args.append(job.id)
 
     def __str__(self) -> str:
         return f'job_name={self.queue_name}, job_id={self.id}'
 
+
 class Group(JobComposite):
     queue_name = '_flexq_group'
+
 
 class Pipeline(JobComposite):
     queue_name = '_flexq_pipeline'
