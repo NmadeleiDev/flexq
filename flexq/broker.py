@@ -68,7 +68,7 @@ class Broker:
                     logging.debug(f'relaunching job {job} since it is in failed state and finished more than {job.retry_delay_minutes} minutes ago (finished_at={job.finished_at})')
                     self.try_relaunch_job(job.id)
 
-        for job in self.jobstore.get_jobs(status=JobStatusEnum.retry):
+        for job in self.jobstore.get_jobs(status=JobStatusEnum.retry) or []:
             if job.start_timestamp >= datetime.now():
                 self.try_relaunch_job(job.id)
 
