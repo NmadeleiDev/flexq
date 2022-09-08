@@ -144,7 +144,7 @@ class WorkerBase:
         if job_id in self.running_jobs:
             self.running_jobs.remove(job_id)
         else:
-            logging.debug(f'tryied to remove job_id={job_id}, but it is not in self.running_jobs')
+            logging.debug(f'tried to remove job_id={job_id}, but it is not in self.running_jobs')
         self._release_lock()
 
     def _get_origin_job_id(self, job: Job) -> str:
