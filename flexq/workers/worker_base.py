@@ -5,7 +5,7 @@ from time import sleep
 from typing import Callable, Type, Union
 from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor, RetryLater
-from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline
+from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline, composite_job_classes, Sequence
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 
@@ -50,7 +50,7 @@ class WorkerBase:
             raise JobExecutorExists(f'Job executor name "{executor_name}" exists. Add executor with other name.')
 
     def _try_start_job(self, job_name: str, job_id: str):
-        if job_name in (JobComposite.queue_name, Group.queue_name, Pipeline.queue_name):
+        if job_name in [c.queue_name for c in composite_job_classes]:
             job = self.jobstore.get_jobs(job_id)[0]
             if job.status == JobStatusEnum.ephemeral.value:
                 logging.debug(f'job {job} is ephemeral, skipping')
@@ -67,7 +67,7 @@ class WorkerBase:
                     if ingroup_job.status == JobStatusEnum.created:
                         self.jobqueue.send_notify_to_queue(
                             queue_name=ingroup_job.queue_name,
-                            notifycation_type=NotificationTypeEnum.todo,
+                            notification_type=NotificationTypeEnum.todo,
                             payload=ingroup_job.id)
                     elif ingroup_job.status == JobStatusEnum.success:
                         successful_jobs_count += 1
@@ -91,7 +91,7 @@ class WorkerBase:
                     elif inpipe_job.status == JobStatusEnum.created:
                         self.jobqueue.send_notify_to_queue(
                             queue_name=inpipe_job.queue_name,
-                            notifycation_type=NotificationTypeEnum.todo,
+                            notification_type=NotificationTypeEnum.todo,
                             payload=inpipe_job.id)
                     elif inpipe_job.status == JobStatusEnum.failed:
                         job.status = JobStatusEnum.failed
@@ -101,6 +101,27 @@ class WorkerBase:
                     break
 
                 if successful_jobs_count == len(child_jobs):
+                    job.status = JobStatusEnum.success
+                    self.jobstore.set_status_for_job(job.id, job.status)
+            elif job.queue_name == Sequence.queue_name:
+                child_jobs = self.jobstore.get_child_job_ids(job.id)
+                completed_jobs_count = 0
+
+                for inseq_job_id in child_jobs:
+                    inseq_job = self.jobstore.get_jobs(inseq_job_id)[0]
+                    if inseq_job.status == JobStatusEnum.success or inseq_job.status == JobStatusEnum.failed:
+                        completed_jobs_count += 1
+                        continue
+                    elif inseq_job.status == JobStatusEnum.created:
+                        self.jobqueue.send_notify_to_queue(
+                            queue_name=inseq_job.queue_name,
+                            notification_type=NotificationTypeEnum.todo,
+                            payload=inseq_job.id)
+                    elif inseq_job.status == JobStatusEnum.acknowledged:
+                        pass
+                    break
+
+                if completed_jobs_count == len(child_jobs):
                     job.status = JobStatusEnum.success
                     self.jobstore.set_status_for_job(job.id, job.status)
             else:
@@ -131,7 +152,7 @@ class WorkerBase:
         if job.status == JobStatusEnum.success and job.parent_job_id is not None:
             self.jobqueue.send_notify_to_queue(
                 queue_name=JobComposite.queue_name,
-                notifycation_type=NotificationTypeEnum.todo,
+                notification_type=NotificationTypeEnum.todo,
                 payload=job.parent_job_id)
 
     def _add_running_job(self, job_id: str):
@@ -196,7 +217,7 @@ class WorkerBase:
     def _start_routine(self):
         Thread(target=self.start_updating_heartbeat, daemon=True).start()
 
-        self.jobqueue.subscribe_to_queues(list(self.executors.keys()), self._todo_callback)
+        self.jobqueue.subscribe_to_queues(list(self.executors.keys()), todo_callback=self._todo_callback)
 
     def _wait_for_work(self, process_idx=None):
         logging.debug(f'starting work in process_idx={process_idx}')

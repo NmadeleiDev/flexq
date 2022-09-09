@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from enum import Enum
-from typing import Dict, Hashable, List, Union
+from typing import Dict, Hashable, List, Union, Callable
 
 import pickle
 
@@ -44,6 +44,14 @@ class JobAbstract:
                  last_heartbeat_ts: Union[datetime, None] = None,
 
                  start_timestamp: Union[datetime, None] = None,
+
+                 success_callback_fn: Union[Callable, None] = None,
+                 success_callback_args: Union[list, None] = None,
+                 success_callback_kwargs: Union[Dict[str, any], None] = None,
+
+                 failure_callback_fn: Union[Callable, None] = None,
+                 failure_callback_args: Union[list, None] = None,
+                 failure_callback_kwargs: Union[Dict[str, any], None] = None,
                  ) -> None:
         self.status = status
 
@@ -71,6 +79,13 @@ class JobAbstract:
 
         self.result = None
 
+        self.success_callback_fn = success_callback_fn
+        self.success_callback_args = success_callback_args
+        self.success_callback_kwargs = success_callback_kwargs
+        self.failure_callback_fn = failure_callback_fn
+        self.failure_callback_args = failure_callback_args
+        self.failure_callback_kwargs = failure_callback_kwargs
+
     def get_args_bytes(self) -> bytes:
         return pickle.dumps(self.args)
 
@@ -83,13 +98,13 @@ class JobAbstract:
     def set_args_bytes(self, val: bytes):
         val = pickle.loads(val)
         if not isinstance(val, (list, tuple)):
-            raise TypeError(f'args must be list, but fould: {type(val)}')
+            raise TypeError(f'args must be list, but found: {type(val)}')
         self.args = val
 
     def set_kwargs_bytes(self, val: bytes):
         val = pickle.loads(val)
         if not isinstance(val, dict):
-            raise TypeError(f'args must be dict, but fould: {type(val)}')
+            raise TypeError(f'args must be dict, but found: {type(val)}')
         self.kwargs = val
 
     def set_result_bytes(self, val: bytes):
@@ -103,14 +118,18 @@ class JobAbstract:
 class Job(JobAbstract):
     def __init__(self,
                  queue_name: str,
-                 args: List = [],
-                 kwargs: Dict[str, Hashable] = {},
+                 args: Union[List[Hashable], None] = None,
+                 kwargs: Union[Dict[str, Hashable], None] = None,
                  result: any = None,
 
                  **other_kwargs
                  ) -> None:
         super().__init__(**other_kwargs)
 
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
         self.queue_name = queue_name
         self.args = args
         self.kwargs = kwargs
@@ -166,3 +185,10 @@ class Group(JobComposite):
 
 class Pipeline(JobComposite):
     queue_name = '_flexq_pipeline'
+
+
+class Sequence(JobComposite):
+    queue_name = '_flexq_sequence'
+
+
+composite_job_classes = [JobComposite, Group, Pipeline, Sequence]

@@ -6,6 +6,7 @@ class NotificationTypeEnum(str, Enum):
     done = 'done'
     abort = 'abort'
 
+
 class Notification:
     def __init__(self, notification_type: NotificationTypeEnum, job_name: str, job_id: str) -> None:
         assert notification_type in NotificationTypeEnum.__members__
