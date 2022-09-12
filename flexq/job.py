@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from enum import Enum
-from typing import Dict, Hashable, List, Union, Callable
+from typing import Dict, Hashable, List, Union, Callable, Iterable
 
 import pickle
 
@@ -118,7 +118,7 @@ class JobAbstract:
 class Job(JobAbstract):
     def __init__(self,
                  queue_name: str,
-                 args: Union[List[Hashable], None] = None,
+                 args: Union[Iterable[Hashable], None] = None,
                  kwargs: Union[Dict[str, Hashable], None] = None,
                  result: any = None,
 
