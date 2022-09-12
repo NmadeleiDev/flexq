@@ -40,7 +40,7 @@ class Broker:
         return job
 
     def launch_job(self, job: Union[Job, Group, Pipeline]):
-        self.jobqueue.send_notify_to_queue(queue_name=job.queue_name, notifycation_type=NotificationTypeEnum.todo, payload=job.id)
+        self.jobqueue.send_notify_to_queue(queue_name=job.queue_name, notification_type=NotificationTypeEnum.todo, payload=job.id)
 
     def remove_job(self, job_id: str):
         self.jobstore.remove_job_from_store(job_id)
@@ -59,7 +59,7 @@ class Broker:
 
     def inspect_running_jobs(self):
         for to_launch_job_id, to_launch_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_and_queue_names():
-            self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notifycation_type=NotificationTypeEnum.todo, payload=to_launch_job_id)
+            self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notification_type=NotificationTypeEnum.todo, payload=to_launch_job_id)
 
         retry_until_success_jobs = self.jobstore.get_jobs(retry_until_success_only=True, status=JobStatusEnum.failed)
         if retry_until_success_jobs is not None:
