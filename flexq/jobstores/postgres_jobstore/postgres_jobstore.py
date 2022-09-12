@@ -1,11 +1,8 @@
-import logging
 from datetime import datetime
 from typing import List, Tuple, Union
-from flexq.exceptions.jobstore import JobNotFoundInStore
 from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
-from psycopg2.errors import UniqueViolation
 
 from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, schema_name, schema_create_query, job_instances_table_name 
 
