@@ -14,8 +14,8 @@ from flexq.jobqueues.notification import Notification
 
 
 class PostgresJobQueue(JobQueueBase):
-    def __init__(self, dsn: str) -> None:
-        super().__init__()
+    def __init__(self, dsn: str, instance_name='default') -> None:
+        super().__init__(instance_name=instance_name)
         self.dsn = dsn
 
     def _wait_in_queues(self, queues_names: List[str]):
@@ -23,16 +23,12 @@ class PostgresJobQueue(JobQueueBase):
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
         curs = conn.cursor()
-        for queue_name in queues_names:
-            channel_name = f'{queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}'
+        for queue_name in queues_names + [JobComposite.queue_name, Group.queue_name, Pipeline.queue_name]:
+            channel_name = self.parts_join_char.join([self.instance_name, queue_name, NotificationTypeEnum.todo])
             curs.execute(f'LISTEN "{channel_name}";')
 
-            channel_name = str(NotificationTypeEnum.abort)
-            curs.execute(f'LISTEN "{channel_name}";')
-
-        curs.execute(f'LISTEN "{JobComposite.queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}";')
-        curs.execute(f'LISTEN "{Group.queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}";')
-        curs.execute(f'LISTEN "{Pipeline.queue_name}{self.parts_join_char}{NotificationTypeEnum.todo}";')
+        channel_name = str(NotificationTypeEnum.abort)
+        curs.execute(f'LISTEN "{channel_name}";')
 
         while True:
             if select.select([conn], [], [], 10) != ([], [], []):
@@ -43,12 +39,12 @@ class PostgresJobQueue(JobQueueBase):
 
     def parse_notification(self, notification: Notify) -> Notification:
         name_parts = str(notification.channel).split(self.parts_join_char)
-        if len(name_parts) != 2:
+        if len(name_parts) != 3:
             raise JobQueueException(
                 f'Got notification, but its channel name has unexpected format: {notification.channel}, ignoring it')
 
-        job_name = name_parts[0]
-        notification_type = name_parts[1]
+        job_name = name_parts[1]
+        notification_type = name_parts[2]
 
         return Notification(notification_type, job_name, notification.payload)
 
@@ -57,6 +53,7 @@ class PostgresJobQueue(JobQueueBase):
             conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
             with conn.cursor() as curs:
-                channel_name = f'{queue_name}{self.parts_join_char}{notification_type}'
+                channel_name = self.parts_join_char.join([self.instance_name, queue_name, notification_type])
+
                 curs.execute(f'NOTIFY "{channel_name}", %s;', (str(payload),))
                 logging.debug(f'sent notify to channel {channel_name} with payload: {payload}')

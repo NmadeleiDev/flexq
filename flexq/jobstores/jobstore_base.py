@@ -5,7 +5,7 @@ from flexq.job import Job, JobStatusEnum
 
 
 class JobStoreBase(ABC):
-    def __init__(self) -> None:
+    def __init__(self, instance_name='default') -> None:
         """
         It's important that JobStore object do not create anything unpickable in __init__. Creation of all connections must be in self.init_conn
         """

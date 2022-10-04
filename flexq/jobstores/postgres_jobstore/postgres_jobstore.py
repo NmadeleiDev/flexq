@@ -4,11 +4,20 @@ from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
 
+schema_name = 'flexq'
+
+job_instances_table_name = 'flexq_job'
+
+interval_name_enum_name = 'flexq_interval_name'
+
 from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, schema_name, schema_create_query, job_instances_table_name 
 
 class PostgresJobStore(JobStoreBase):
-    def __init__(self, dsn: str) -> None:
+    def __init__(self, dsn: str, instance_name='default') -> None:
         self.dsn = dsn
+        self.instance_name = instance_name
+
+        self.job_instances_table_name = job_instances_table_name + '__' + self.instance_name
 
     def init_conn(self):
         self._init_db()
@@ -21,13 +30,13 @@ class PostgresJobStore(JobStoreBase):
     def _init_tables(self):
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
-                curs.execute(schema_create_query)
+                curs.execute(schema_create_query(schema_name))
                 curs.execute(job_status_enum_create_query)
-                curs.execute(job_instances_table_create_query)
+                curs.execute(job_instances_table_create_query(schema_name, self.job_instances_table_name))
 
     def try_acknowledge_job(self, job_id: str, worker_heartbeat_interval_seconds: int) -> bool:
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET status = %s, worker_heartbeat_interval_seconds = %s 
+        UPDATE {schema_name}.{self.job_instances_table_name} SET status = %s, worker_heartbeat_interval_seconds = %s 
         WHERE id = %s AND status = %s
         """
         with psycopg2.connect(self.dsn) as conn:
@@ -38,11 +47,11 @@ class PostgresJobStore(JobStoreBase):
     def set_status_for_job(self, job_id: str, status: JobStatusEnum) -> None:
         if status in (JobStatusEnum.success.value, JobStatusEnum.failed.value):
             query = f"""
-            UPDATE {schema_name}.{job_instances_table_name} SET status = %s, finished_at = now() WHERE id = %s 
+            UPDATE {schema_name}.{self.job_instances_table_name} SET status = %s, finished_at = now() WHERE id = %s 
             """
         else:
             query = f"""
-            UPDATE {schema_name}.{job_instances_table_name} SET status = %s WHERE id = %s 
+            UPDATE {schema_name}.{self.job_instances_table_name} SET status = %s WHERE id = %s 
             """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -50,7 +59,7 @@ class PostgresJobStore(JobStoreBase):
 
     def save_result_for_job(self, job_id: str, result: bytes) -> None:
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET result = %s WHERE id = %s 
+        UPDATE {schema_name}.{self.job_instances_table_name} SET result = %s WHERE id = %s 
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -65,14 +74,14 @@ class PostgresJobStore(JobStoreBase):
 
             if job.id is None:
                 query = f"""
-                INSERT INTO {schema_name}.{job_instances_table_name} ({insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING ID
+                INSERT INTO {schema_name}.{self.job_instances_table_name} ({insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING ID
                 """
                 with conn.cursor() as curs:
                     curs.execute(query, query_args)
                     job.id = str(curs.fetchone()[0])
             else:
                 query = f"""
-                INSERT INTO {schema_name}.{job_instances_table_name} (id, {insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO {schema_name}.{self.job_instances_table_name} (id, {insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 with conn.cursor() as curs:
                     curs.execute(query, [job.id, ] + query_args)
@@ -81,7 +90,7 @@ class PostgresJobStore(JobStoreBase):
 
     def remove_job_from_store(self, job_id: str):
         query = f"""
-        DELETE FROM {schema_name}.{job_instances_table_name} WHERE id = %s
+        DELETE FROM {schema_name}.{self.job_instances_table_name} WHERE id = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -89,7 +98,7 @@ class PostgresJobStore(JobStoreBase):
 
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         query = f"""
-        SELECT id FROM {schema_name}.{job_instances_table_name} WHERE parent_job_id = %s ORDER BY id
+        SELECT id FROM {schema_name}.{self.job_instances_table_name} WHERE parent_job_id = %s ORDER BY id
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -124,7 +133,7 @@ class PostgresJobStore(JobStoreBase):
             where_part_str = ''
 
         query = f"""
-        SELECT {fields_to_select} FROM {schema_name}.{job_instances_table_name} {where_part_str} 
+        SELECT {fields_to_select} FROM {schema_name}.{self.job_instances_table_name} {where_part_str} 
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -163,8 +172,8 @@ class PostgresJobStore(JobStoreBase):
 
     def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         query = f"""
-        SELECT rj.id, rj.job_queue_name FROM {schema_name}.{job_instances_table_name} as rj
-        LEFT JOIN {schema_name}.{job_instances_table_name} as pj ON rj.parent_job_id = pj.id
+        SELECT rj.id, rj.job_queue_name FROM {schema_name}.{self.job_instances_table_name} as rj
+        LEFT JOIN {schema_name}.{self.job_instances_table_name} as pj ON rj.parent_job_id = pj.id
         WHERE 
             rj.status = '{JobStatusEnum.created.value}' 
             AND (rj.parent_job_id IS NULL OR pj.status = '{JobStatusEnum.ephemeral.value}')
@@ -178,7 +187,7 @@ class PostgresJobStore(JobStoreBase):
 
     def get_job_user_status(self, job_id: str) -> str:
         query = f"""
-        SELECT user_status FROM {schema_name}.{job_instances_table_name} WHERE id = %s
+        SELECT user_status FROM {schema_name}.{self.job_instances_table_name} WHERE id = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -187,7 +196,7 @@ class PostgresJobStore(JobStoreBase):
 
     def set_job_user_status(self, job_id: str, value: str):
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET user_status = %s WHERE id = %s
+        UPDATE {schema_name}.{self.job_instances_table_name} SET user_status = %s WHERE id = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -195,7 +204,7 @@ class PostgresJobStore(JobStoreBase):
 
     def set_job_parent_id(self, job_id: str, parent_job_id: str):
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET parent_job_id = %s WHERE id = %s
+        UPDATE {schema_name}.{self.job_instances_table_name} SET parent_job_id = %s WHERE id = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -203,7 +212,7 @@ class PostgresJobStore(JobStoreBase):
 
     def set_job_last_heartbeat_and_start_ts_to_now(self, job_id: str):
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET last_heartbeat_ts = now(), start_timestamp = now() WHERE id = %s
+        UPDATE {schema_name}.{self.job_instances_table_name} SET last_heartbeat_ts = now(), start_timestamp = now() WHERE id = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
@@ -211,7 +220,7 @@ class PostgresJobStore(JobStoreBase):
 
     def set_job_start_ts(self, job_id: str, start_timestamp: datetime):
         query = f"""
-        UPDATE {schema_name}.{job_instances_table_name} SET start_timestamp = %s WHERE id = %s
+        UPDATE {schema_name}.{self.job_instances_table_name} SET start_timestamp = %s WHERE id = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:

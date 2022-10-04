@@ -7,10 +7,12 @@ from flexq.jobqueues.notification import Notification, NotificationTypeEnum
 class JobQueueBase(ABC):
     parts_join_char = "__"
 
-    def __init__(self) -> None:
+    def __init__(self, instance_name='default') -> None:
         """
         It's important that JobStore object do not create anything unpickable in __init__. Creation of all connections must be in self.init_conn
         """
+        self.instance_name = instance_name
+
         self.done_callback = None
         self.todo_callback = None
         self.abort_callback = None
