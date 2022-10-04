@@ -80,9 +80,10 @@ class Broker:
 
     def init_scheduled_jobs(self):
         scheduled_jobs = self.jobstore.get_jobs(with_schedule_only=True)
-        for job in scheduled_jobs:
-            self._add_scheduler_job_if_schedule_present(job)
-        self.scheduler.wakeup()
+        if scheduled_jobs is not None:
+            for job in scheduled_jobs:
+                self._add_scheduler_job_if_schedule_present(job)
+            self.scheduler.wakeup()
 
     def try_relaunch_job(self, job_id: str, do_send_launch=True, relaunch_if_acknowledged=False):
         # получить job
