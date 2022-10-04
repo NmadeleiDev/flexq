@@ -10,7 +10,7 @@ job_instances_table_name = 'flexq_job'
 
 interval_name_enum_name = 'flexq_interval_name'
 
-from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, schema_name, schema_create_query, job_instances_table_name 
+from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, schema_create_query
 
 class PostgresJobStore(JobStoreBase):
     def __init__(self, dsn: str, instance_name='default') -> None:
