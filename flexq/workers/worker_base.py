@@ -16,7 +16,7 @@ class WorkerBase:
     def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors: Union[int, None] = None,
                  store_results=True, update_heartbeat_interval_seconds=60) -> None:
         self.executors = {}
-        self.running_jobs = []
+        self.running_jobs = {}
 
         self.jobstore = jobstore
         self.jobqueue = jobqueue
@@ -25,6 +25,8 @@ class WorkerBase:
         self.max_parallel_executors = max_parallel_executors
 
         self.update_heartbeat_interval_seconds = update_heartbeat_interval_seconds
+
+        self.max_simultaneous_executions_by_executor = {}
 
     def _before_start_routine(self):
         self.jobstore.init_conn()
@@ -36,7 +38,8 @@ class WorkerBase:
     def _release_lock(self):
         pass
 
-    def add_job_executor(self, cb: Union[Callable, Type[Executor]], name: Union[str, None] = None):
+    def add_job_executor(self, cb: Union[Callable, Type[Executor]], name: Union[str, None] = None,
+                         max_simultaneous_executions:Union[int, None]=None):
         if isinstance(cb, type(Executor)) and name is None:
             executor_name = cb.__name__
         elif name is None:
@@ -49,6 +52,9 @@ class WorkerBase:
         else:
             raise JobExecutorExists(f'Job executor name "{executor_name}" exists. Add executor with other name.')
 
+        if max_simultaneous_executions is not None:
+            self.max_simultaneous_executions_by_executor[executor_name] = max_simultaneous_executions
+
     def _try_start_job(self, job_name: str, job_id: str):
         if job_name in [c.queue_name for c in composite_job_classes]:
             job = self.jobstore.get_jobs(job_id)[0]
@@ -56,7 +62,7 @@ class WorkerBase:
                 logging.debug(f'job {job} is ephemeral, skipping')
                 return
 
-            self._add_running_job(job_id)
+            self._add_running_job(job_id, job_name)
 
             if job.queue_name == Group.queue_name:
                 successful_jobs_count = 0
@@ -131,7 +137,7 @@ class WorkerBase:
             self._remove_running_job(job_id)
         elif self.jobstore.try_acknowledge_job(job_id, self.update_heartbeat_interval_seconds):
             logging.debug(f'Acknowledged job_id={job_id}')
-            self._add_running_job(job_id)
+            self._add_running_job(job_id, job_name)
             self.jobstore.set_job_last_heartbeat_and_start_ts_to_now(job_id)
 
             job = self.jobstore.get_jobs(job_id)[0]
@@ -155,15 +161,15 @@ class WorkerBase:
                 notification_type=NotificationTypeEnum.todo,
                 payload=job.parent_job_id)
 
-    def _add_running_job(self, job_id: str):
+    def _add_running_job(self, job_id: str, job_name: str):
         self._acquire_lock()
-        self.running_jobs.append(job_id)
+        self.running_jobs[job_id] = job_name
         self._release_lock()
 
     def _remove_running_job(self, job_id: str):
         self._acquire_lock()
         if job_id in self.running_jobs:
-            self.running_jobs.remove(job_id)
+            del self.running_jobs[job_id]
         else:
             logging.debug(f'tried to remove job_id={job_id}, but it is not in self.running_jobs')
         self._release_lock()
@@ -252,6 +258,13 @@ class WorkerBase:
         if self.max_parallel_executors is not None and len(self.running_jobs) >= self.max_parallel_executors:
             logging.info(
                 f'skipping job job_name={job_name}, job_id={job_id} due to max amount of parallel executors running')
+            return
+
+        num_of_running_instances = len([x for x in self.running_jobs.values() if x == job_name])
+        if job_name in self.max_simultaneous_executions_by_executor.keys() \
+                and num_of_running_instances >= self.max_simultaneous_executions_by_executor[job_name]:
+            logging.info(
+                f'skipping job job_name={job_name}, job_id={job_id} due to max amount of this job executors running')
             return
 
         self._call_try_start_job(job_name, job_id)
