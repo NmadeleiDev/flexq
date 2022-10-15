@@ -39,7 +39,7 @@ class WorkerBase:
         pass
 
     def add_job_executor(self, cb: Union[Callable, Type[Executor]], name: Union[str, None] = None,
-                         max_simultaneous_executions:Union[int, None]=None):
+                         max_simultaneous_executions: Union[int, None] = None):
         if isinstance(cb, type(Executor)) and name is None:
             executor_name = cb.__name__
         elif name is None:
