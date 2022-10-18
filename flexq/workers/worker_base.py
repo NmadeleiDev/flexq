@@ -135,6 +135,7 @@ class WorkerBase:
                 raise UnknownJobExecutor(f'Unknown composite type: {job.queue_name}')
 
             self._remove_running_job(job_id)
+
         elif self.jobstore.try_acknowledge_job(job_id, self.update_heartbeat_interval_seconds):
             logging.debug(f'Acknowledged job_id={job_id}')
             self._add_running_job(job_id, job_name)
