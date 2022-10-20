@@ -3,6 +3,7 @@ from typing import List, Type, Union
 
 from .jobstores.jobstore_base import JobStoreBase
 
+
 class Executor:
     set_origin_job_id = False
 

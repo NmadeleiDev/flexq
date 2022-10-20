@@ -59,6 +59,7 @@ class Broker:
 
     def inspect_running_jobs(self):
         for to_launch_job_id, to_launch_queue_name in self.jobstore.get_not_acknowledged_jobs_ids_and_queue_names():
+            logging.debug(f"Sending notify for job {to_launch_job_id} in queue {to_launch_queue_name} as it is not acknowledged")
             self.jobqueue.send_notify_to_queue(queue_name=to_launch_queue_name, notification_type=NotificationTypeEnum.todo, payload=to_launch_job_id)
 
         retry_until_success_jobs = self.jobstore.get_jobs(retry_until_success_only=True, status=JobStatusEnum.failed)

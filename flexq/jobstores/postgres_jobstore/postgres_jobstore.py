@@ -221,10 +221,15 @@ class PostgresJobStore(JobStoreBase):
             with conn.cursor() as curs:
                 curs.execute(query, (parent_job_id, job_id))
 
-    def set_job_last_heartbeat_and_start_ts_to_now(self, job_id: str):
-        query = f"""
-        UPDATE {schema_name}.{self.job_instances_table_name} SET last_heartbeat_ts = now(), start_timestamp = now() WHERE id = %s
-        """
+    def set_job_last_heartbeat_ts_to_now(self, job_id: str, set_start_ts_also=False):
+        if set_start_ts_also:
+            query = f"""
+            UPDATE {schema_name}.{self.job_instances_table_name} SET last_heartbeat_ts = now(), start_timestamp = now() WHERE id = %s
+            """
+        else:
+            query = f"""
+            UPDATE {schema_name}.{self.job_instances_table_name} SET last_heartbeat_ts = now() WHERE id = %s
+            """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
                 curs.execute(query, (job_id,))

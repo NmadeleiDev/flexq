@@ -139,7 +139,7 @@ class WorkerBase:
         elif self.jobstore.try_acknowledge_job(job_id, self.update_heartbeat_interval_seconds):
             logging.debug(f'Acknowledged job_id={job_id}')
             self._add_running_job(job_id, job_name)
-            self.jobstore.set_job_last_heartbeat_and_start_ts_to_now(job_id)
+            self.jobstore.set_job_last_heartbeat_ts_to_now(job_id, True)
 
             job = self.jobstore.get_jobs(job_id)[0]
 
@@ -240,8 +240,8 @@ class WorkerBase:
             running_jobs = copy(self.running_jobs)
             self._release_lock()
 
-            for job_id in running_jobs:
-                self.jobstore.set_job_last_heartbeat_and_start_ts_to_now(job_id)
+            for job_id in running_jobs.keys():
+                self.jobstore.set_job_last_heartbeat_ts_to_now(job_id, False)
 
             sleep(self.update_heartbeat_interval_seconds)
 
