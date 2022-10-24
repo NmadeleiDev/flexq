@@ -11,7 +11,7 @@ class JobQueueBase(ABC):
         """
         It's important that JobStore object do not create anything unpickable in __init__. Creation of all connections must be in self.init_conn
         """
-        self.instance_name = instance_name
+        self.instance_name = str(instance_name)
 
         self.done_callback = None
         self.todo_callback = None
