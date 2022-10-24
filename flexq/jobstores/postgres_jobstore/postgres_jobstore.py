@@ -16,7 +16,7 @@ from .tables_create_sql import job_instances_table_create_query, job_status_enum
 class PostgresJobStore(JobStoreBase):
     def __init__(self, dsn: str, instance_name='default') -> None:
         self.dsn = dsn
-        self.instance_name = instance_name
+        self.instance_name = str(instance_name)
 
         self.job_instances_table_name = job_instances_table_name + '__' + self.instance_name
 
