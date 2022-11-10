@@ -23,12 +23,16 @@ class PostgresJobQueue(JobQueueBase):
         conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
         curs = conn.cursor()
+        channel_names_to_listen = []
         for queue_name in queues_names + [JobComposite.queue_name, Group.queue_name, Pipeline.queue_name]:
-            channel_name = self.parts_join_char.join([self.instance_name, queue_name, NotificationTypeEnum.todo])
+            channel_names_to_listen.append(self.parts_join_char.join([self.instance_name, queue_name, NotificationTypeEnum.todo]))
+            if queue_name in queues_names:
+                channel_names_to_listen.append(self.parts_join_char.join([self.instance_name, queue_name, NotificationTypeEnum.abort]))
+
+        for channel_name in channel_names_to_listen:
             curs.execute(f'LISTEN "{channel_name}";')
 
-        channel_name = str(NotificationTypeEnum.abort)
-        curs.execute(f'LISTEN "{channel_name}";')
+        logging.debug(f'subscribed to channels: {", ".join(channel_names_to_listen)}')
 
         while True:
             if select.select([conn], [], [], 10) != ([], [], []):
@@ -42,6 +46,10 @@ class PostgresJobQueue(JobQueueBase):
         if len(name_parts) != 3:
             raise JobQueueException(
                 f'Got notification, but its channel name has unexpected format: {notification.channel}, ignoring it')
+
+        instance_name = name_parts[0]
+        if instance_name != self.instance_name:
+            raise JobQueueException(f'strange, got notification from wrong instance {instance_name}: {notification.channel}')
 
         job_name = name_parts[1]
         notification_type = name_parts[2]
