@@ -79,14 +79,14 @@ class PostgresJobStore(JobStoreBase):
 
             if job.id is None:
                 query = f"""
-                INSERT INTO {schema_name}.{self.job_instances_table_name} ({insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING ID
+                INSERT INTO {schema_name}.{self.job_instances_table_name} ({insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING ID
                 """
                 with conn.cursor() as curs:
                     curs.execute(query, query_args)
                     job.id = str(curs.fetchone()[0])
             else:
                 query = f"""
-                INSERT INTO {schema_name}.{self.job_instances_table_name} (id, {insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                INSERT INTO {schema_name}.{self.job_instances_table_name} (id, {insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 with conn.cursor() as curs:
                     curs.execute(query, [job.id, ] + query_args)
