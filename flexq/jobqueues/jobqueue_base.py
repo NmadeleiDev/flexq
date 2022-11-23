@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Optional
 from flexq.jobqueues.notification import Notification, NotificationTypeEnum
 
 
@@ -22,9 +22,9 @@ class JobQueueBase(ABC):
 
     def subscribe_to_queues(self,
                             queues_names: List[str],
-                            todo_callback: Union[Callable, None] = None,
-                            done_callback: Union[Callable, None] = None,
-                            abort_callback: Union[Callable, None] = None):
+                            todo_callback: Optional[Callable] = None,
+                            done_callback: Optional[Callable] = None,
+                            abort_callback: Optional[Callable] = None):
         self.todo_callback = todo_callback
         self.done_callback = done_callback
         self.abort_callback = abort_callback

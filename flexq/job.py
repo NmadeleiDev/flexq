@@ -2,7 +2,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from enum import Enum
-from typing import Dict, Hashable, List, Union, Callable, Iterable
+from typing import Dict, Hashable, List, Union, Callable, Iterable, Optional
 
 import pickle
 
@@ -26,32 +26,34 @@ class JobIntervalNameEnum(str, Enum):
 
 class JobAbstract:
     def __init__(self,
-                 id: Union[str, None] = None,
+                 id: Optional[str] = None,
                  status: JobStatusEnum = JobStatusEnum.created,
-                 parent_job_id: Union[str, None] = None,
-                 cron: Union[str, None] = None,
-                 interval_name: Union[JobIntervalNameEnum, None] = None,
+                 parent_job_id: Optional[str] = None,
+                 cron: Optional[str] = None,
+                 interval_name: Optional[JobIntervalNameEnum] = None,
                  interval_value: int = 0,
 
                  retry_until_success: bool = False,
                  retry_delay_minutes: int = 0,
 
-                 name: Union[str, None] = None,
+                 name: Optional[str] = None,
 
-                 created_at: Union[datetime, None] = None,
-                 finished_at: Union[datetime, None] = None,
+                 created_at: Optional[datetime] = None,
+                 finished_at: Optional[datetime] = None,
 
-                 last_heartbeat_ts: Union[datetime, None] = None,
+                 last_heartbeat_ts: Optional[datetime] = None,
 
-                 start_timestamp: Union[datetime, None] = None,
+                 start_timestamp: Optional[datetime] = None,
 
-                 success_callback_fn: Union[Callable, None] = None,
-                 success_callback_args: Union[list, None] = None,
+                 start_when_other_is_success: Optional[str] = None,
+
+                 success_callback_fn: Optional[Callable] = None,
+                 success_callback_args: Optional[list] = None,
                  success_callback_kwargs: Union[Dict[str, any], None] = None,
 
-                 failure_callback_fn: Union[Callable, None] = None,
-                 failure_callback_args: Union[list, None] = None,
-                 failure_callback_kwargs: Union[Dict[str, any], None] = None,
+                 failure_callback_fn: Optional[Callable] = None,
+                 failure_callback_args: Optional[list] = None,
+                 failure_callback_kwargs: Optional[Dict[str, any]] = None,
                  ) -> None:
         self.status = status
 

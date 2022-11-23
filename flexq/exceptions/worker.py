@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Union
+from typing import Union, Optional
 
 
 class WorkerException(Exception):
@@ -20,7 +20,7 @@ class RunningJobDuplicate(WorkerException):
 
 
 class RetryLater(WorkerException):
-    def __init__(self, message, next_run_datetime: Union[datetime, None] = None, delay_seconds: Union[int, None] = None):
+    def __init__(self, message, next_run_datetime: Optional[datetime] = None, delay_seconds: Optional[int] = None):
         super().__init__(message)
 
         if next_run_datetime is None and delay_seconds is None:

@@ -2,7 +2,7 @@ from copy import copy
 import logging
 from threading import Thread
 from time import sleep
-from typing import Callable, Type, Union
+from typing import Callable, Type, Union, Optional
 from flexq.executor import Executor
 from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor, RetryLater
 from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline, composite_job_classes, Sequence
@@ -13,7 +13,7 @@ import traceback
 
 
 class WorkerBase:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors: Union[int, None] = None,
+    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors: Optional[int] = None,
                  store_results=True, update_heartbeat_interval_seconds=60) -> None:
         self.executors = {}
         self.running_jobs = {}
@@ -38,8 +38,8 @@ class WorkerBase:
     def _release_lock(self):
         pass
 
-    def add_job_executor(self, cb: Union[Callable, Type[Executor]], name: Union[str, None] = None,
-                         max_simultaneous_executions: Union[int, None] = None):
+    def add_job_executor(self, cb: Union[Callable, Type[Executor]], name: Optional[str] = None,
+                         max_simultaneous_executions: Optional[int] = None):
         if isinstance(cb, type(Executor)) and name is None:
             executor_name = cb.__name__
         elif name is None:

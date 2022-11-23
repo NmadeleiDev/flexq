@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
@@ -109,10 +109,10 @@ class PostgresJobStore(JobStoreBase):
                 curs.execute(query, (parent_job_id,))
                 return [x[0] for x in curs.fetchall()]
 
-    def get_jobs(self, job_id: Union[str, None] = None, include_result=False, with_schedule_only=False,
+    def get_jobs(self, job_id: Optional[str] = None, include_result=False, with_schedule_only=False,
                  retry_until_success_only=False,
-                 heartbeat_missed_by_more_than_n_seconds: Union[int, None] = None,
-                 status: Union[JobStatusEnum, None] = None) -> Union[List[Job], None]:
+                 heartbeat_missed_by_more_than_n_seconds: Optional[int] = None,
+                 status: Optional[JobStatusEnum] = None) -> Union[List[Job], None]:
 
         fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, " \
                            "retry_delay_minutes, name, cron, interval_name, interval_value, id, created_at, " \
