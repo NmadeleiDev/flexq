@@ -56,8 +56,14 @@ class WorkerBase:
             self.max_simultaneous_executions_by_executor[executor_name] = max_simultaneous_executions
 
     def _try_start_job(self, job_name: str, job_id: str):
+        job = self.jobstore.get_jobs(job_id)[0]
+        if job.start_when_other_job_id_success is not None:
+            start_after_job = self.jobstore.get_jobs(job.start_when_other_job_id_success)[0]
+            if start_after_job.status != JobStatusEnum.success:
+                logging.debug(f'Skipping job {job} since it is waiting for job is {job.start_when_other_job_id_success} and its status is {start_after_job.status}')
+                return
+
         if job_name in [c.queue_name for c in composite_job_classes]:
-            job = self.jobstore.get_jobs(job_id)[0]
             if job.status == JobStatusEnum.ephemeral.value:
                 logging.debug(f'job {job} is ephemeral, skipping')
                 return
@@ -136,12 +142,10 @@ class WorkerBase:
 
             self._remove_running_job(job_id)
 
-        elif self.jobstore.try_acknowledge_job(job_id, self.update_heartbeat_interval_seconds):
+        elif job.status == JobStatusEnum.created and self.jobstore.try_acknowledge_job(job_id, self.update_heartbeat_interval_seconds):
             logging.debug(f'Acknowledged job_id={job_id}')
             self._add_running_job(job_id, job_name)
             self.jobstore.set_job_last_heartbeat_ts_to_now(job_id, True)
-
-            job = self.jobstore.get_jobs(job_id)[0]
 
             self._call_executor(job)
 
@@ -156,11 +160,19 @@ class WorkerBase:
             logging.debug(f'seems like job {job_id} is already handled by other worker')
             return
 
-        if job.status == JobStatusEnum.success and job.parent_job_id is not None:
-            self.jobqueue.send_notify_to_queue(
-                queue_name=JobComposite.queue_name,
-                notification_type=NotificationTypeEnum.todo,
-                payload=job.parent_job_id)
+        if job.status == JobStatusEnum.success:
+            if job.parent_job_id is not None:
+                self.jobqueue.send_notify_to_queue(
+                    queue_name=JobComposite.queue_name,
+                    notification_type=NotificationTypeEnum.todo,
+                    payload=job.parent_job_id)
+
+            jobs_to_launch_after_this = self.jobstore.get_jobs(start_when_other_job_id_success=job.id)
+            for job_to_launch in jobs_to_launch_after_this:
+                self.jobqueue.send_notify_to_queue(
+                    queue_name=job_to_launch.queue_name,
+                    notification_type=NotificationTypeEnum.todo,
+                    payload=job_to_launch.id)
 
     def _add_running_job(self, job_id: str, job_name: str):
         self._acquire_lock()

@@ -14,6 +14,7 @@ create table if not exists {schema_name}.{job_instances_table_name}
     args            bytea not null,
     kwargs          bytea not null,
     parent_job_id     int default null,
+    start_when_other_job_id_success int default null,
     result             bytea default null,
 
     cron             varchar default null,

@@ -39,7 +39,10 @@ class JobStoreBase(ABC):
     def get_jobs(self, job_id: Optional[str] = None, include_result=False, with_schedule_only=False,
                  retry_until_success_only=False,
                  heartbeat_missed_by_more_than_n_seconds: Optional[int] = None,
-                 status: Optional[JobStatusEnum] = None) -> Optional[List[Job]]:
+                 status: Optional[JobStatusEnum] = None, start_when_other_job_id_success: Optional[str] = None) -> Optional[List[Job]]:
+        pass
+
+    def replace_start_when_other_job_id_success(self, old_val: str, new_val: str):
         pass
 
     def get_job_user_status(self, job_id: str) -> str:

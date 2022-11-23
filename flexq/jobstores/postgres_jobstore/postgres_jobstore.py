@@ -112,11 +112,11 @@ class PostgresJobStore(JobStoreBase):
     def get_jobs(self, job_id: Optional[str] = None, include_result=False, with_schedule_only=False,
                  retry_until_success_only=False,
                  heartbeat_missed_by_more_than_n_seconds: Optional[int] = None,
-                 status: Optional[JobStatusEnum] = None) -> Union[List[Job], None]:
+                 status: Optional[JobStatusEnum] = None, start_when_other_job_id_success: Optional[str] = None) -> Optional[List[Job]]:
 
         fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, " \
                            "retry_delay_minutes, name, cron, interval_name, interval_value, id, created_at, " \
-                           "finished_at, last_heartbeat_ts, start_timestamp "
+                           "finished_at, last_heartbeat_ts, start_timestamp, start_when_other_job_id_success "
 
         if include_result:
             fields_to_select += ", result"
@@ -137,6 +137,9 @@ class PostgresJobStore(JobStoreBase):
         if status is not None:
             where_part.append('status = %s')
             args.append(status)
+        if start_when_other_job_id_success is not None:
+            where_part.append('start_when_other_job_id_success = %s')
+            args.append(start_when_other_job_id_success)
 
         if len(where_part) > 0:
             where_part_str = ' WHERE ' + ' AND '.join([f'({x})' for x in where_part])
@@ -171,15 +174,25 @@ class PostgresJobStore(JobStoreBase):
                         finished_at=result[13],
                         last_heartbeat_ts=result[14],
                         start_timestamp=result[15],
+                        start_when_other_job_id_success=result[16],
                     )
                     job.set_args_bytes(result[1])
                     job.set_kwargs_bytes(result[2])
                     if include_result:
-                        job.set_result_bytes(result[16])
+                        job.set_result_bytes(result[17])
 
                     jobs.append(job)
 
                 return jobs
+
+    def replace_start_when_other_job_id_success(self, old_val: str, new_val: str):
+        query = f"""UPDATE {schema_name}.{self.job_instances_table_name} 
+        SET start_when_other_job_id_success = %s
+        WHERE start_when_other_job_id_success = %s"""
+
+        with psycopg2.connect(self.dsn) as conn:
+            with conn.cursor() as curs:
+                curs.execute(query, (new_val, old_val))
 
     def get_not_acknowledged_jobs_ids_and_queue_names(self) -> List[Tuple[str, str]]:
         query = f"""

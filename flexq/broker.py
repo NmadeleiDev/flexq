@@ -86,18 +86,25 @@ class Broker:
                 self._add_scheduler_job_if_schedule_present(job)
             self.scheduler.wakeup()
 
-    def try_relaunch_job(self, job_id: str, do_send_launch=True, relaunch_if_acknowledged=False):
+    def try_relaunch_job(self, job_id: str, do_send_launch=True, relaunch_if_acknowledged=False, ignore_start_when_other_job_id_success=False):
         # получить job
         # посчитать кол-во не завершенных реплик (по parent_id)
         # если кол-во незавершенных ок - поставить status=created
         # отослать launch job
         
         logging.debug(f'Trying to relaunch job_id={job_id}, do_send_launch={do_send_launch}, relaunch_if_acknowledged={relaunch_if_acknowledged}')
-        try:
-            job = self.jobstore.get_jobs(job_id)[0]
-        except JobNotFoundInStore:
+        jobs_found = self.jobstore.get_jobs(job_id)
+        if len(jobs_found) == 0:
             logging.debug(f'job_id={job_id} not present in store, skipping scheduled task')
             return
+        job = jobs_found[0]
+
+        if not ignore_start_when_other_job_id_success and job.start_when_other_job_id_success is not None:
+            start_after_job = self.jobstore.get_jobs(job.start_when_other_job_id_success)[0]
+            if start_after_job.status != JobStatusEnum.success:
+                logging.debug(
+                    f'Skipping relaunch job {job} since it is waiting for job is {job.start_when_other_job_id_success} and its status is {start_after_job.status}')
+                return
 
         children = self.jobstore.get_child_job_ids(job_id)
         for child_job_id in children:

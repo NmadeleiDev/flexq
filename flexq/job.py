@@ -45,7 +45,7 @@ class JobAbstract:
 
                  start_timestamp: Optional[datetime] = None,
 
-                 start_when_other_is_success: Optional[str] = None,
+                 start_when_other_job_id_success: Optional[str] = None,
 
                  success_callback_fn: Optional[Callable] = None,
                  success_callback_args: Optional[list] = None,
@@ -75,6 +75,8 @@ class JobAbstract:
 
         self.last_heartbeat_ts = last_heartbeat_ts
         self.start_timestamp = start_timestamp
+
+        self.start_when_other_job_id_success = start_when_other_job_id_success
 
         self.kwargs = {}
         self.args = []
