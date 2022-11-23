@@ -167,7 +167,7 @@ class WorkerBase:
                     notification_type=NotificationTypeEnum.todo,
                     payload=job.parent_job_id)
 
-            jobs_to_launch_after_this = self.jobstore.get_jobs(start_when_other_job_id_success=job.id)
+            jobs_to_launch_after_this = self.jobstore.get_jobs(start_when_other_job_id_success=job.id) or []
             for job_to_launch in jobs_to_launch_after_this:
                 self.jobqueue.send_notify_to_queue(
                     queue_name=job_to_launch.queue_name,
