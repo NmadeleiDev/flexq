@@ -68,11 +68,12 @@ class PostgresJobStore(JobStoreBase):
                 curs.execute(query, (result, job_id))
 
     def add_job_to_store(self, job: Job) -> str:
-        insert_fields = 'job_queue_name, args, kwargs, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value'
+        insert_fields = 'job_queue_name, args, kwargs, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, start_when_other_job_id_success'
 
         query_args = (
         job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.retry_until_success,
-        job.retry_delay_minutes, job.name, job.cron, job.interval_name, job.interval_value)
+        job.retry_delay_minutes, job.name, job.cron, job.interval_name, job.interval_value,
+        job.start_when_other_job_id_success)
 
         with psycopg2.connect(self.dsn) as conn:
 
