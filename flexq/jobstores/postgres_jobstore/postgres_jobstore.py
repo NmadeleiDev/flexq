@@ -31,9 +31,18 @@ class PostgresJobStore(JobStoreBase):
     def _init_tables(self):
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
-                curs.execute(schema_create_query(schema_name))
-                curs.execute(job_status_enum_create_query)
-                curs.execute(job_instances_table_create_query(schema_name, self.job_instances_table_name))
+                try:
+                    curs.execute(schema_create_query(schema_name))
+                except psycopg2.errors.UniqueViolation:
+                    pass
+                try:
+                    curs.execute(job_status_enum_create_query)
+                except psycopg2.errors.UniqueViolation:
+                    pass
+                try:
+                    curs.execute(job_instances_table_create_query(schema_name, self.job_instances_table_name))
+                except psycopg2.errors.UniqueViolation:
+                    pass
 
     def try_acknowledge_job(self, job_id: str, worker_heartbeat_interval_seconds: int) -> bool:
         query = f"""
