@@ -1,8 +1,7 @@
 import logging
-from multiprocessing import Process, Manager
+from multiprocessing import Manager, Process
 
-from flexq.job import JobComposite, JobStatusEnum, Pipeline, Group
-
+from flexq.job import Group, JobComposite, JobStatusEnum, Pipeline
 from flexq.workers.worker_base import WorkerBase
 
 

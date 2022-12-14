@@ -1,5 +1,5 @@
 import logging
-from typing import List, Type, Union, Optional
+from typing import List, Optional, Type, Union
 
 from .jobstores.jobstore_base import JobStoreBase
 
@@ -14,7 +14,7 @@ class Executor:
         self.job_id = job_id
 
     def get_flexq_job_id(self) -> Optional[str]:
-        if hasattr(self, 'job_id'):
+        if hasattr(self, "job_id"):
             return self.job_id
         else:
             return None
@@ -23,14 +23,16 @@ class Executor:
         self.origin_job_id = origin_job_id
 
     def get_flexq_origin_job_id(self) -> Optional[str]:
-        if hasattr(self, 'origin_job_id'):
+        if hasattr(self, "origin_job_id"):
             return self.origin_job_id
         else:
             return None
 
     def set_state(self, state_msg: str, use_this_job_id=True, use_origin_job_id=False):
         if self.jobstore is None:
-            logging.debug(f'job_id {self.get_flexq_job_id()} cant log state, as jobstore is None. State: {state_msg}')
+            logging.debug(
+                f"job_id {self.get_flexq_job_id()} cant log state, as jobstore is None. State: {state_msg}"
+            )
             return
         if use_this_job_id:
             self.jobstore.set_job_user_status(self.get_flexq_job_id(), state_msg)

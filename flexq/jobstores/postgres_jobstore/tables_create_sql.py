@@ -1,10 +1,13 @@
-from flexq.job import Job, JobIntervalNameEnum, JobStatusEnum
+from flexq.job import JobStatusEnum
 
-job_status_enum_name = 'flexq_job_status'
+job_status_enum_name = "flexq_job_status"
 
-schema_create_query = lambda schema_name: f"""CREATE SCHEMA IF NOT EXISTS {schema_name}"""
+schema_create_query = (
+    lambda schema_name: f"""CREATE SCHEMA IF NOT EXISTS {schema_name}"""
+)
 
-job_instances_table_create_query = lambda schema_name, job_instances_table_name : f"""
+job_instances_table_create_query = (
+    lambda schema_name, job_instances_table_name: f"""
 create table if not exists {schema_name}.{job_instances_table_name}
 (
     id           serial
@@ -43,6 +46,7 @@ create table if not exists {schema_name}.{job_instances_table_name}
       ON DELETE CASCADE
 )
 """
+)
 
 
 job_status_enum_create_query = f"""

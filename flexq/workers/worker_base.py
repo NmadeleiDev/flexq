@@ -1,20 +1,34 @@
-from copy import copy
 import logging
+import traceback
+from copy import copy
 from threading import Thread
 from time import sleep
-from typing import Callable, Type, Union, Optional
+from typing import Callable, Optional, Type, Union
+
+from flexq.exceptions.worker import JobExecutorExists, RetryLater, UnknownJobExecutor
 from flexq.executor import Executor
-from flexq.exceptions.worker import JobExecutorExists, UnknownJobExecutor, RetryLater
-from flexq.job import Group, Job, JobComposite, JobStatusEnum, Pipeline, composite_job_classes, Sequence
+from flexq.job import (
+    Group,
+    Job,
+    JobComposite,
+    JobStatusEnum,
+    Pipeline,
+    Sequence,
+    composite_job_classes,
+)
 from flexq.jobqueues.jobqueue_base import JobQueueBase, NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 
-import traceback
-
 
 class WorkerBase:
-    def __init__(self, jobstore: JobStoreBase, jobqueue: JobQueueBase, max_parallel_executors: Optional[int] = None,
-                 store_results=True, update_heartbeat_interval_seconds=60) -> None:
+    def __init__(
+        self,
+        jobstore: JobStoreBase,
+        jobqueue: JobQueueBase,
+        max_parallel_executors: Optional[int] = None,
+        store_results=True,
+        update_heartbeat_interval_seconds=60,
+    ) -> None:
         self.executors = {}
         self.running_jobs = {}
 
@@ -38,34 +52,46 @@ class WorkerBase:
     def _release_lock(self):
         pass
 
-    def add_job_executor(self, cb: Union[Callable, Type[Executor]], name: Optional[str] = None,
-                         max_simultaneous_executions: Optional[int] = None):
+    def add_job_executor(
+        self,
+        cb: Union[Callable, Type[Executor]],
+        name: Optional[str] = None,
+        max_simultaneous_executions: Optional[int] = None,
+    ):
         if isinstance(cb, type(Executor)) and name is None:
             executor_name = cb.__name__
         elif name is None:
-            raise ValueError('name must not be None if cb is not and Executor')
+            raise ValueError("name must not be None if cb is not and Executor")
         else:
             executor_name = name
 
         if executor_name not in self.executors.keys():
             self.executors[executor_name] = cb
         else:
-            raise JobExecutorExists(f'Job executor name "{executor_name}" exists. Add executor with other name.')
+            raise JobExecutorExists(
+                f'Job executor name "{executor_name}" exists. Add executor with other name.'
+            )
 
         if max_simultaneous_executions is not None:
-            self.max_simultaneous_executions_by_executor[executor_name] = max_simultaneous_executions
+            self.max_simultaneous_executions_by_executor[
+                executor_name
+            ] = max_simultaneous_executions
 
     def _try_start_job(self, job_name: str, job_id: str):
         job = self.jobstore.get_jobs(job_id)[0]
         if job.start_when_other_job_id_success is not None:
-            start_after_job = self.jobstore.get_jobs(job.start_when_other_job_id_success)[0]
+            start_after_job = self.jobstore.get_jobs(
+                job.start_when_other_job_id_success
+            )[0]
             if start_after_job.status != JobStatusEnum.success:
-                logging.debug(f'Skipping job {job} since it is waiting for job is {job.start_when_other_job_id_success} and its status is {start_after_job.status}')
+                logging.debug(
+                    f"Skipping job {job} since it is waiting for job is {job.start_when_other_job_id_success} and its status is {start_after_job.status}"
+                )
                 return
 
         if job_name in [c.queue_name for c in composite_job_classes]:
             if job.status == JobStatusEnum.ephemeral.value:
-                logging.debug(f'job {job} is ephemeral, skipping')
+                logging.debug(f"job {job} is ephemeral, skipping")
                 return
 
             self._add_running_job(job_id, job_name)
@@ -80,7 +106,8 @@ class WorkerBase:
                         self.jobqueue.send_notify_to_queue(
                             queue_name=ingroup_job.queue_name,
                             notification_type=NotificationTypeEnum.todo,
-                            payload=ingroup_job.id)
+                            payload=ingroup_job.id,
+                        )
                     elif ingroup_job.status == JobStatusEnum.success:
                         successful_jobs_count += 1
                     elif ingroup_job.status == JobStatusEnum.failed:
@@ -104,7 +131,8 @@ class WorkerBase:
                         self.jobqueue.send_notify_to_queue(
                             queue_name=inpipe_job.queue_name,
                             notification_type=NotificationTypeEnum.todo,
-                            payload=inpipe_job.id)
+                            payload=inpipe_job.id,
+                        )
                     elif inpipe_job.status == JobStatusEnum.failed:
                         job.status = JobStatusEnum.failed
                         self.jobstore.set_status_for_job(job.id, job.status)
@@ -121,14 +149,18 @@ class WorkerBase:
 
                 for inseq_job_id in child_jobs:
                     inseq_job = self.jobstore.get_jobs(inseq_job_id)[0]
-                    if inseq_job.status == JobStatusEnum.success or inseq_job.status == JobStatusEnum.failed:
+                    if (
+                        inseq_job.status == JobStatusEnum.success
+                        or inseq_job.status == JobStatusEnum.failed
+                    ):
                         completed_jobs_count += 1
                         continue
                     elif inseq_job.status == JobStatusEnum.created:
                         self.jobqueue.send_notify_to_queue(
                             queue_name=inseq_job.queue_name,
                             notification_type=NotificationTypeEnum.todo,
-                            payload=inseq_job.id)
+                            payload=inseq_job.id,
+                        )
                     elif inseq_job.status == JobStatusEnum.acknowledged:
                         pass
                     break
@@ -138,12 +170,14 @@ class WorkerBase:
                     self.jobstore.set_status_for_job(job.id, job.status)
             else:
                 self._remove_running_job(job_id)
-                raise UnknownJobExecutor(f'Unknown composite type: {job.queue_name}')
+                raise UnknownJobExecutor(f"Unknown composite type: {job.queue_name}")
 
             self._remove_running_job(job_id)
 
-        elif job.status == JobStatusEnum.created and self.jobstore.try_acknowledge_job(job_id, self.update_heartbeat_interval_seconds):
-            logging.debug(f'Acknowledged job_id={job_id}')
+        elif job.status == JobStatusEnum.created and self.jobstore.try_acknowledge_job(
+            job_id, self.update_heartbeat_interval_seconds
+        ):
+            logging.debug(f"Acknowledged job_id={job_id}")
             self._add_running_job(job_id, job_name)
             self.jobstore.set_job_last_heartbeat_ts_to_now(job_id, True)
 
@@ -157,7 +191,7 @@ class WorkerBase:
 
             self._remove_running_job(job_id)
         else:
-            logging.debug(f'seems like job {job_id} is already handled by other worker')
+            logging.debug(f"seems like job {job_id} is already handled by other worker")
             return
 
         if job.status == JobStatusEnum.success:
@@ -165,14 +199,18 @@ class WorkerBase:
                 self.jobqueue.send_notify_to_queue(
                     queue_name=JobComposite.queue_name,
                     notification_type=NotificationTypeEnum.todo,
-                    payload=job.parent_job_id)
+                    payload=job.parent_job_id,
+                )
 
-            jobs_to_launch_after_this = self.jobstore.get_jobs(start_when_other_job_id_success=job.id) or []
+            jobs_to_launch_after_this = (
+                self.jobstore.get_jobs(start_when_other_job_id_success=job.id) or []
+            )
             for job_to_launch in jobs_to_launch_after_this:
                 self.jobqueue.send_notify_to_queue(
                     queue_name=job_to_launch.queue_name,
                     notification_type=NotificationTypeEnum.todo,
-                    payload=job_to_launch.id)
+                    payload=job_to_launch.id,
+                )
 
     def _add_running_job(self, job_id: str, job_name: str):
         self._acquire_lock()
@@ -184,7 +222,9 @@ class WorkerBase:
         if job_id in self.running_jobs:
             del self.running_jobs[job_id]
         else:
-            logging.debug(f'tried to remove job_id={job_id}, but it is not in self.running_jobs')
+            logging.debug(
+                f"tried to remove job_id={job_id}, but it is not in self.running_jobs"
+            )
         self._release_lock()
 
     def _get_origin_job_id(self, job: Job) -> str:
@@ -196,7 +236,7 @@ class WorkerBase:
     def _call_executor(self, job: Job):
         executor = self.executors[job.queue_name]
 
-        logging.debug(f'starting job {job.id}')
+        logging.debug(f"starting job {job.id}")
         try:
             if isinstance(executor, type(Executor)):
                 executor = executor()
@@ -211,9 +251,10 @@ class WorkerBase:
                 try:
                     result = executor.perform(*job.args, **job.kwargs)
                 except expected_exceptions as e:
-                    traceback_str = ''.join(traceback.format_tb(e.__traceback__))
+                    traceback_str = "".join(traceback.format_tb(e.__traceback__))
                     logging.info(
-                        f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:{type(e).__name__}: {e}, traceback: {traceback_str}')
+                        f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:{type(e).__name__}: {e}, traceback: {traceback_str}'
+                    )
             else:
                 result = executor(*job.args, **job.kwargs)
 
@@ -225,21 +266,24 @@ class WorkerBase:
             self.jobstore.set_job_start_ts(job.id, e.get_next_run_time())
             job.status = JobStatusEnum.retry
         except Exception as e:
-            traceback_str = ''.join(traceback.format_tb(e.__traceback__))
+            traceback_str = "".join(traceback.format_tb(e.__traceback__))
 
             logging.info(
-                f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}, traceback: {traceback_str}')
+                f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}, traceback: {traceback_str}'
+            )
             job.status = JobStatusEnum.failed
 
-        logging.debug(f'job {job} execution completed with status: {job.status}')
+        logging.debug(f"job {job} execution completed with status: {job.status}")
 
     def _start_routine(self):
         Thread(target=self.start_updating_heartbeat, daemon=True).start()
 
-        self.jobqueue.subscribe_to_queues(list(self.executors.keys()), todo_callback=self._todo_callback)
+        self.jobqueue.subscribe_to_queues(
+            list(self.executors.keys()), todo_callback=self._todo_callback
+        )
 
     def _wait_for_work(self, process_idx=None):
-        logging.debug(f'starting work in process_idx={process_idx}')
+        logging.debug(f"starting work in process_idx={process_idx}")
         self._before_start_routine()
         self._start_routine()
 
@@ -258,26 +302,41 @@ class WorkerBase:
             sleep(self.update_heartbeat_interval_seconds)
 
     def _todo_callback(self, job_name: str, job_id: str):
-        logging.debug(f'got job_name={job_name}, job_id={job_id} in _todo_callback')
+        logging.debug(f"got job_name={job_name}, job_id={job_id} in _todo_callback")
         if job_id in self.running_jobs:
             logging.warning(
-                f'job {job_name} with id={job_id} passed to _todo_callback, but it is already in self.running_jobs (ignore if it is composite job, they are not acknowledged)')
+                f"job {job_name} with id={job_id} passed to _todo_callback, but it is already in self.running_jobs (ignore if it is composite job, they are not acknowledged)"
+            )
             return
 
         if job_name not in self.executors.keys():
-            if job_name not in (Pipeline.queue_name, Group.queue_name, JobComposite.queue_name):
+            if job_name not in (
+                Pipeline.queue_name,
+                Group.queue_name,
+                JobComposite.queue_name,
+            ):
                 logging.error(f'Job executor "{job_name}" is not known here')
                 return
-        if self.max_parallel_executors is not None and len(self.running_jobs) >= self.max_parallel_executors:
+        if (
+            self.max_parallel_executors is not None
+            and len(self.running_jobs) >= self.max_parallel_executors
+        ):
             logging.info(
-                f'skipping job job_name={job_name}, job_id={job_id} due to max amount of parallel executors running')
+                f"skipping job job_name={job_name}, job_id={job_id} due to max amount of parallel executors running"
+            )
             return
 
-        num_of_running_instances = len([x for x in self.running_jobs.values() if x == job_name])
-        if job_name in self.max_simultaneous_executions_by_executor.keys() \
-                and num_of_running_instances >= self.max_simultaneous_executions_by_executor[job_name]:
+        num_of_running_instances = len(
+            [x for x in self.running_jobs.values() if x == job_name]
+        )
+        if (
+            job_name in self.max_simultaneous_executions_by_executor.keys()
+            and num_of_running_instances
+            >= self.max_simultaneous_executions_by_executor[job_name]
+        ):
             logging.info(
-                f'skipping job job_name={job_name}, job_id={job_id} due to max amount of this job executors running')
+                f"skipping job job_name={job_name}, job_id={job_id} due to max amount of this job executors running"
+            )
             return
 
         self._call_try_start_job(job_name, job_id)

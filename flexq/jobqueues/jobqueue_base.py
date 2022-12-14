@@ -1,13 +1,14 @@
 import logging
 from abc import ABC
-from typing import Callable, List, Union, Optional
+from typing import Callable, List, Optional, Union
+
 from flexq.jobqueues.notification import Notification, NotificationTypeEnum
 
 
 class JobQueueBase(ABC):
     parts_join_char = "__"
 
-    def __init__(self, instance_name='default') -> None:
+    def __init__(self, instance_name="default") -> None:
         """
         It's important that JobStore object do not create anything unpickable in __init__. Creation of all connections must be in self.init_conn
         """
@@ -20,11 +21,13 @@ class JobQueueBase(ABC):
     def init_conn(self):
         pass
 
-    def subscribe_to_queues(self,
-                            queues_names: List[str],
-                            todo_callback: Optional[Callable] = None,
-                            done_callback: Optional[Callable] = None,
-                            abort_callback: Optional[Callable] = None):
+    def subscribe_to_queues(
+        self,
+        queues_names: List[str],
+        todo_callback: Optional[Callable] = None,
+        done_callback: Optional[Callable] = None,
+        abort_callback: Optional[Callable] = None,
+    ):
         self.todo_callback = todo_callback
         self.done_callback = done_callback
         self.abort_callback = abort_callback
@@ -33,16 +36,25 @@ class JobQueueBase(ABC):
     def _wait_in_queues(self, queues_names: List[str]):
         pass
 
-    def send_notify_to_queue(self, queue_name: str, notification_type: NotificationTypeEnum, payload: str):
+    def send_notify_to_queue(
+        self, queue_name: str, notification_type: NotificationTypeEnum, payload: str
+    ):
         pass
 
     def _handle_notification(self, notification: Notification):
-        logging.debug(f'got notification: {str(notification)}')
+        logging.debug(f"got notification: {str(notification)}")
 
-        if notification.notification_type == NotificationTypeEnum.todo and self.todo_callback is not None:
+        if (
+            notification.notification_type == NotificationTypeEnum.todo
+            and self.todo_callback is not None
+        ):
             self.todo_callback(notification.job_name, notification.job_id)
-        elif notification.notification_type == NotificationTypeEnum.done and self.done_callback is not None:
+        elif (
+            notification.notification_type == NotificationTypeEnum.done
+            and self.done_callback is not None
+        ):
             self.done_callback(notification.job_name, notification.job_id)
         else:
             logging.warning(
-                f'Got notification for job "{notification.job_name}", but its type is not recognized: {notification.notification_type}, ignoring it')
+                f'Got notification for job "{notification.job_name}", but its type is not recognized: {notification.notification_type}, ignoring it'
+            )
