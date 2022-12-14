@@ -35,18 +35,21 @@ class PostgresJobStore(JobStoreBase):
         self.conn.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
     def _init_tables(self):
-        with psycopg2.connect(self.dsn) as conn:
+        conn = psycopg2.connect(self.dsn)
+        try:
             with conn:
                 with conn.cursor() as curs:
                     try:
                         curs.execute(schema_create_query(schema_name))
                     except psycopg2.errors.UniqueViolation:
                         pass
+            with conn:
                 with conn.cursor() as curs:
                     try:
                         curs.execute(job_status_enum_create_query)
                     except psycopg2.errors.UniqueViolation:
                         pass
+            with conn:
                 with conn.cursor() as curs:
                     try:
                         curs.execute(
@@ -56,6 +59,8 @@ class PostgresJobStore(JobStoreBase):
                         )
                     except psycopg2.errors.UniqueViolation:
                         pass
+        finally:
+            conn.close()
 
     def try_acknowledge_job(
         self, job_id: str, worker_heartbeat_interval_seconds: int
