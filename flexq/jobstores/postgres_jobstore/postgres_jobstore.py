@@ -1,32 +1,24 @@
 from datetime import datetime
-from typing import List, Optional, Tuple, Union
-
-import psycopg2
-
+from typing import List, Tuple, Union, Optional
 from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
+import psycopg2
 
-schema_name = "flexq"
+schema_name = 'flexq'
 
-job_instances_table_name = "flexq_job"
+job_instances_table_name = 'flexq_job'
 
-interval_name_enum_name = "flexq_interval_name"
+interval_name_enum_name = 'flexq_interval_name'
 
-from .tables_create_sql import (
-    job_instances_table_create_query,
-    job_status_enum_create_query,
-    schema_create_query,
-)
+from .tables_create_sql import job_instances_table_create_query, job_status_enum_create_query, schema_create_query
 
 
 class PostgresJobStore(JobStoreBase):
-    def __init__(self, dsn: str, instance_name="default") -> None:
+    def __init__(self, dsn: str, instance_name='default') -> None:
         super().__init__(instance_name)
         self.dsn = dsn
 
-        self.job_instances_table_name = (
-            job_instances_table_name + "__" + self.instance_name
-        )
+        self.job_instances_table_name = job_instances_table_name + '__' + self.instance_name
 
     def init_conn(self):
         self._init_db()
@@ -39,32 +31,28 @@ class PostgresJobStore(JobStoreBase):
     def _init_tables(self):
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
-                curs.execute(schema_create_query(schema_name))
-                curs.execute(job_status_enum_create_query)
-                curs.execute(
-                    job_instances_table_create_query(
-                        schema_name, self.job_instances_table_name
-                    )
-                )
+                try:
+                    curs.execute(schema_create_query(schema_name))
+                except psycopg2.errors.UniqueViolation:
+                    pass
+                try:
+                    curs.execute(job_status_enum_create_query)
+                except psycopg2.errors.UniqueViolation:
+                    pass
+                try:
+                    curs.execute(job_instances_table_create_query(schema_name, self.job_instances_table_name))
+                except psycopg2.errors.UniqueViolation:
+                    pass
 
-    def try_acknowledge_job(
-        self, job_id: str, worker_heartbeat_interval_seconds: int
-    ) -> bool:
+    def try_acknowledge_job(self, job_id: str, worker_heartbeat_interval_seconds: int) -> bool:
         query = f"""
         UPDATE {schema_name}.{self.job_instances_table_name} SET status = %s, worker_heartbeat_interval_seconds = %s 
         WHERE id = %s AND status = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
-                curs.execute(
-                    query,
-                    (
-                        JobStatusEnum.acknowledged.value,
-                        worker_heartbeat_interval_seconds,
-                        job_id,
-                        JobStatusEnum.created.value,
-                    ),
-                )
+                curs.execute(query, (JobStatusEnum.acknowledged.value, worker_heartbeat_interval_seconds, job_id,
+                                     JobStatusEnum.created.value))
                 return curs.rowcount == 1
 
     def set_status_for_job(self, job_id: str, status: JobStatusEnum) -> None:
@@ -89,21 +77,12 @@ class PostgresJobStore(JobStoreBase):
                 curs.execute(query, (result, job_id))
 
     def add_job_to_store(self, job: Job) -> str:
-        insert_fields = "job_queue_name, args, kwargs, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, start_when_other_job_id_success"
+        insert_fields = 'job_queue_name, args, kwargs, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, start_when_other_job_id_success'
 
         query_args = (
-            job.queue_name,
-            job.get_args_bytes(),
-            job.get_kwargs_bytes(),
-            job.parent_job_id,
-            job.retry_until_success,
-            job.retry_delay_minutes,
-            job.name,
-            job.cron,
-            job.interval_name,
-            job.interval_value,
-            job.start_when_other_job_id_success,
-        )
+        job.queue_name, job.get_args_bytes(), job.get_kwargs_bytes(), job.parent_job_id, job.retry_until_success,
+        job.retry_delay_minutes, job.name, job.cron, job.interval_name, job.interval_value,
+        job.start_when_other_job_id_success)
 
         with psycopg2.connect(self.dsn) as conn:
 
@@ -119,13 +98,7 @@ class PostgresJobStore(JobStoreBase):
                 INSERT INTO {schema_name}.{self.job_instances_table_name} (id, {insert_fields}) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """
                 with conn.cursor() as curs:
-                    curs.execute(
-                        query,
-                        [
-                            job.id,
-                        ]
-                        + query_args,
-                    )
+                    curs.execute(query, [job.id, ] + query_args)
 
         return job.id
 
@@ -146,22 +119,14 @@ class PostgresJobStore(JobStoreBase):
                 curs.execute(query, (parent_job_id,))
                 return [x[0] for x in curs.fetchall()]
 
-    def get_jobs(
-        self,
-        job_id: Optional[str] = None,
-        include_result=False,
-        with_schedule_only=False,
-        retry_until_success_only=False,
-        heartbeat_missed_by_more_than_n_seconds: Optional[int] = None,
-        status: Optional[JobStatusEnum] = None,
-        start_when_other_job_id_success: Optional[str] = None,
-    ) -> Optional[List[Job]]:
+    def get_jobs(self, job_id: Optional[str] = None, include_result=False, with_schedule_only=False,
+                 retry_until_success_only=False,
+                 heartbeat_missed_by_more_than_n_seconds: Optional[int] = None,
+                 status: Optional[JobStatusEnum] = None, start_when_other_job_id_success: Optional[str] = None) -> Optional[List[Job]]:
 
-        fields_to_select = (
-            "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, "
-            "retry_delay_minutes, name, cron, interval_name, interval_value, id, created_at, "
-            "finished_at, last_heartbeat_ts, start_timestamp, start_when_other_job_id_success "
-        )
+        fields_to_select = "job_queue_name, args, kwargs, status, parent_job_id, retry_until_success, " \
+                           "retry_delay_minutes, name, cron, interval_name, interval_value, id, created_at, " \
+                           "finished_at, last_heartbeat_ts, start_timestamp, start_when_other_job_id_success "
 
         if include_result:
             fields_to_select += ", result"
@@ -169,28 +134,27 @@ class PostgresJobStore(JobStoreBase):
         where_part = []
         args = []
         if job_id is not None:
-            where_part.append("id = %s")
+            where_part.append('id = %s')
             args.append(job_id)
         if with_schedule_only:
-            where_part.append("cron is not null or interval_name is not null")
+            where_part.append('cron is not null or interval_name is not null')
         if retry_until_success_only:
-            where_part.append("retry_until_success = true")
+            where_part.append('retry_until_success = true')
         if heartbeat_missed_by_more_than_n_seconds is not None:
             where_part.append(
-                "(last_heartbeat_ts is null) or (EXTRACT(EPOCH FROM (now() - last_heartbeat_ts)) - worker_heartbeat_interval_seconds) > %s"
-            )
+                "(last_heartbeat_ts is null) or (EXTRACT(EPOCH FROM (now() - last_heartbeat_ts)) - worker_heartbeat_interval_seconds) > %s")
             args.append(heartbeat_missed_by_more_than_n_seconds)
         if status is not None:
-            where_part.append("status = %s")
+            where_part.append('status = %s')
             args.append(status)
         if start_when_other_job_id_success is not None:
-            where_part.append("start_when_other_job_id_success = %s")
+            where_part.append('start_when_other_job_id_success = %s')
             args.append(start_when_other_job_id_success)
 
         if len(where_part) > 0:
-            where_part_str = " WHERE " + " AND ".join([f"({x})" for x in where_part])
+            where_part_str = ' WHERE ' + ' AND '.join([f'({x})' for x in where_part])
         else:
-            where_part_str = ""
+            where_part_str = ''
 
         query = f"""
         SELECT {fields_to_select} FROM {schema_name}.{self.job_instances_table_name} {where_part_str} 
