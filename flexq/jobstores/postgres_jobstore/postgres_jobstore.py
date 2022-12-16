@@ -98,7 +98,7 @@ class PostgresJobStore(JobStoreBase):
     def add_job_to_store(self, job: Job) -> str:
         insert_fields = "job_queue_name, args, kwargs, parent_job_id, retry_until_success, retry_delay_minutes, name, cron, interval_name, interval_value, start_when_other_job_id_success"
 
-        query_args = (
+        query_args = [
             job.queue_name,
             job.get_args_bytes(),
             job.get_kwargs_bytes(),
@@ -110,7 +110,7 @@ class PostgresJobStore(JobStoreBase):
             job.interval_name,
             job.interval_value,
             job.start_when_other_job_id_success,
-        )
+        ]
 
         with psycopg2.connect(self.dsn) as conn:
 
