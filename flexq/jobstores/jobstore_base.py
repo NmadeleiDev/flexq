@@ -73,3 +73,6 @@ class JobStoreBase(ABC):
 
     def set_job_start_ts(self, job_id: str, start_timestamp: datetime):
         pass
+
+    def replace_task_id_to_wait_for(self, old_task_id: str, new_task_id: str):
+        pass

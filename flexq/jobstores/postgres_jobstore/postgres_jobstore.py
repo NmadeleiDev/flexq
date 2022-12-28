@@ -315,3 +315,12 @@ class PostgresJobStore(JobStoreBase):
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
                 curs.execute(query, (start_timestamp, job_id))
+
+    def replace_task_id_to_wait_for(self, old_task_id: str, new_task_id: str):
+        query = f"""
+                UPDATE {schema_name}.{self.job_instances_table_name} SET start_when_other_job_id_success = %s 
+                WHERE start_when_other_job_id_success = %s
+                """
+        with psycopg2.connect(self.dsn) as conn:
+            with conn.cursor() as curs:
+                curs.execute(query, (new_task_id, old_task_id))
