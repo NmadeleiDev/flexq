@@ -4,3 +4,7 @@ class JobStoreException(Exception):
 
 class JobNotFoundInStore(JobStoreException):
     pass
+
+
+class CanNotDeleteAwaitedForJob(JobStoreException):
+    pass

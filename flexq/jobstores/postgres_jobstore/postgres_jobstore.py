@@ -4,6 +4,8 @@ from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
 
+from ...exceptions.jobstore import CanNotDeleteAwaitedForJob
+
 schema_name = "flexq"
 
 job_instances_table_name = "flexq_job"
@@ -145,12 +147,24 @@ class PostgresJobStore(JobStoreBase):
         return job.id
 
     def remove_job_from_store(self, job_id: str):
-        query = f"""
-        DELETE FROM {schema_name}.{self.job_instances_table_name} WHERE id = %s
-        """
         with psycopg2.connect(self.dsn) as conn:
+            query1 = f"""
+                    SELECT id FROM {schema_name}.{self.job_instances_table_name} 
+                    WHERE start_when_other_job_id_success = %s
+                    """
             with conn.cursor() as curs:
-                curs.execute(query, (job_id,))
+                curs.execute(query1, (job_id,))
+                waiting_task_ids = [x[0] for x in curs.fetchall()]
+
+                if len(waiting_task_ids):
+                    raise CanNotDeleteAwaitedForJob(f'can not delete job {job_id} '
+                                                    f'since those jobs are waiting for it: {waiting_task_ids}')
+
+            query2 = f"""
+            DELETE FROM {schema_name}.{self.job_instances_table_name} WHERE id = %s
+            """
+            with conn.cursor() as curs:
+                curs.execute(query2, (job_id,))
 
     def get_child_job_ids(self, parent_job_id: str) -> List[str]:
         query = f"""
