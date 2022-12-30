@@ -84,7 +84,7 @@ class PostgresJobStore(JobStoreBase):
                 )
                 return curs.rowcount == 1
 
-    def set_status_for_job(self, job_id: str, status: JobStatusEnum) -> None:
+    def set_status_for_job(self, job_id: str, status: JobStatusEnum, if_not_acknowledged_only=False) -> None:
         if status in (JobStatusEnum.success.value, JobStatusEnum.failed.value):
             query = f"""
             UPDATE {schema_name}.{self.job_instances_table_name} SET status = %s, finished_at = now() WHERE id = %s 
@@ -93,6 +93,10 @@ class PostgresJobStore(JobStoreBase):
             query = f"""
             UPDATE {schema_name}.{self.job_instances_table_name} SET status = %s WHERE id = %s 
             """
+
+        if if_not_acknowledged_only:
+            query += " AND status != 'acknowledged'"
+
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
                 curs.execute(query, (status, job_id))

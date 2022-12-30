@@ -307,6 +307,17 @@ class WorkerBase:
             logging.warning(
                 f"job {job_name} with id={job_id} passed to _todo_callback, but it is already in self.running_jobs (ignore if it is composite job, they are not acknowledged)"
             )
+            #  Check status for this job: it MUST be acknowledged
+            #  (if not, there was a mistake and it must be marked as acknowledged now)
+            job = self.jobstore.get_jobs(job_id)
+            if not isinstance(job, list) or len(job) != 1:
+                logging.error(f'not found job with id = {job_id} ({job_name}), but it wa passed to _todo_callback')
+
+            job = job[0]
+
+            if job.status != JobStatusEnum.acknowledged:
+                self.jobstore.set_status_for_job(job_id, JobStatusEnum.acknowledged)
+                logging.debug(f'set status=acknowledged for job id = {job_id}')
             return
 
         if job_name not in self.executors.keys():

@@ -22,7 +22,7 @@ class JobStoreBase(ABC):
         pass
 
     # вызывается воркером после завершения работы
-    def set_status_for_job(self, job_id: str, status: JobStatusEnum) -> None:
+    def set_status_for_job(self, job_id: str, status: JobStatusEnum, if_not_acknowledged_only=False) -> None:
         pass
 
     # вызывается воркером после завершения работы при наличии возврата и store_results=True

@@ -107,7 +107,8 @@ class Broker:
         if missed_heartbeat_jobs is not None:
             for job in missed_heartbeat_jobs:
                 logging.debug(
-                    f"seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), will retry it"
+                    f"seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), "
+                    f"will retry it"
                 )
                 self.try_relaunch_job(job.id, relaunch_if_acknowledged=True)
 
@@ -169,7 +170,8 @@ class Broker:
             return
 
         job.status = JobStatusEnum.created
-        self.jobstore.set_status_for_job(job.id, JobStatusEnum.created)
+        self.jobstore.set_status_for_job(job.id, JobStatusEnum.created,
+                                         if_not_acknowledged_only=not relaunch_if_acknowledged)
         logging.debug(f"updated job {job} status to {job.status}")
 
         if do_send_launch:
