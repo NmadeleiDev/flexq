@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Optional
 from flexq.job import Job, JobStatusEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
 import psycopg2
@@ -288,13 +288,16 @@ class PostgresJobStore(JobStoreBase):
 
                 return [(x[0], x[1]) for x in result]
 
-    def get_job_user_status(self, job_id: str) -> str:
+    def get_job_user_status(self, job_id: str) -> Optional[str]:
         query = f"""
         SELECT user_status FROM {schema_name}.{self.job_instances_table_name} WHERE id = %s
         """
         with psycopg2.connect(self.dsn) as conn:
             with conn.cursor() as curs:
                 curs.execute(query, (job_id,))
+                val = curs.fetchone()
+                if val is None:
+                    return None
                 return curs.fetchone()[0]
 
     def set_job_user_status(self, job_id: str, value: str):
