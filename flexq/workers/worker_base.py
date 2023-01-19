@@ -21,6 +21,10 @@ from flexq.jobstores.jobstore_base import JobStoreBase
 
 
 class WorkerBase:
+    """
+    Worker is a storage for Job Executors. They are added through add_job_executor.
+    Worker waits for command to start some job and starts it in appropriate manner.
+    """
     def __init__(
         self,
         jobstore: JobStoreBase,
@@ -253,7 +257,8 @@ class WorkerBase:
                 except expected_exceptions as e:
                     traceback_str = "".join(traceback.format_tb(e.__traceback__))
                     logging.info(
-                        f'Caught expected exception in executor "{job.queue_name}", job_id={job.id}:{type(e).__name__}: {e}, traceback: {traceback_str}'
+                        f'Caught expected exception in executor "{job.queue_name}", '
+                        f'job_id={job.id}:{type(e).__name__}: {e}, traceback: {traceback_str}'
                     )
             else:
                 result = executor(*job.args, **job.kwargs)
@@ -269,7 +274,8 @@ class WorkerBase:
             traceback_str = "".join(traceback.format_tb(e.__traceback__))
 
             logging.info(
-                f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: {e}, traceback: {traceback_str}'
+                f'Caught unexpected exception in executor "{job.queue_name}", job_id={job.id}:\n{type(e).__name__}: '
+                f'{e}, traceback: {traceback_str}'
             )
             job.status = JobStatusEnum.failed
 

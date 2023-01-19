@@ -1,13 +1,12 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Union
+from typing import Union
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from flexq.exceptions.broker import FailedToEnqueueJob, UnknownSchedulingMethod
-from flexq.exceptions.jobstore import JobNotFoundInStore
+from flexq.exceptions.broker import FailedToEnqueueJob
 from flexq.job import Group, Job, JobStatusEnum, Pipeline
 from flexq.jobqueues.jobqueue_base import JobQueueBase
 from flexq.jobqueues.notification import NotificationTypeEnum

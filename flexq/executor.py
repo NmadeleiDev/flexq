@@ -5,6 +5,10 @@ from .jobstores.jobstore_base import JobStoreBase
 
 
 class Executor:
+    """
+    Executor is a base class for all jobs. Is has special method "perform" in which all job logic must take place.
+    Method perform is called by the Worker, witch contains this executor.
+    """
     set_origin_job_id = False
 
     def set_jobstore(self, jobstore: JobStoreBase):
