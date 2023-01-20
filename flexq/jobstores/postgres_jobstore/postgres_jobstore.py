@@ -298,7 +298,7 @@ class PostgresJobStore(JobStoreBase):
                 val = curs.fetchone()
                 if val is None:
                     return None
-                return curs.fetchone()[0]
+                return val[0]
 
     def set_job_user_status(self, job_id: str, value: str):
         query = f"""
