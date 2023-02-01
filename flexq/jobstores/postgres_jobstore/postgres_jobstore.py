@@ -43,13 +43,13 @@ class PostgresJobStore(JobStoreBase):
                 with conn.cursor() as curs:
                     try:
                         curs.execute(schema_create_query(schema_name))
-                    except psycopg2.errors.UniqueViolation:
+                    except (psycopg2.errors.UniqueViolation, psycopg2.errors.DuplicateTable):
                         pass
             with conn:
                 with conn.cursor() as curs:
                     try:
                         curs.execute(job_status_enum_create_query)
-                    except psycopg2.errors.UniqueViolation:
+                    except (psycopg2.errors.UniqueViolation, psycopg2.errors.DuplicateTable):
                         pass
             with conn:
                 with conn.cursor() as curs:
@@ -59,7 +59,7 @@ class PostgresJobStore(JobStoreBase):
                                 schema_name, self.job_instances_table_name
                             )
                         )
-                    except psycopg2.errors.UniqueViolation:
+                    except (psycopg2.errors.UniqueViolation, psycopg2.errors.DuplicateTable):
                         pass
         finally:
             conn.close()
