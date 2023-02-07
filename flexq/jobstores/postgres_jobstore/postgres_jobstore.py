@@ -188,6 +188,7 @@ class PostgresJobStore(JobStoreBase):
         heartbeat_missed_by_more_than_n_seconds: Optional[int] = None,
         status: Optional[JobStatusEnum] = None,
         start_when_other_job_id_success: Optional[str] = None,
+        job_queue_name: Optional[str] = None
     ) -> Optional[List[Job]]:
 
         fields_to_select = (
@@ -219,6 +220,9 @@ class PostgresJobStore(JobStoreBase):
         if start_when_other_job_id_success is not None:
             where_part.append("start_when_other_job_id_success = %s")
             args.append(start_when_other_job_id_success)
+        if job_queue_name is not None:
+            where_part.append("job_queue_name = %s")
+            args.append(job_queue_name)
 
         if len(where_part) > 0:
             where_part_str = " WHERE " + " AND ".join([f"({x})" for x in where_part])

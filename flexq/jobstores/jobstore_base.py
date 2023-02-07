@@ -48,6 +48,7 @@ class JobStoreBase(ABC):
         heartbeat_missed_by_more_than_n_seconds: Optional[int] = None,
         status: Optional[JobStatusEnum] = None,
         start_when_other_job_id_success: Optional[str] = None,
+        job_queue_name: Optional[str] = None
     ) -> Optional[List[Job]]:
         pass
 
