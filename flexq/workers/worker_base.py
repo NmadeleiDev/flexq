@@ -86,7 +86,12 @@ class WorkerBase:
         if job.start_when_other_job_id_success is not None:
             start_after_job = self.jobstore.get_jobs(
                 job.start_when_other_job_id_success
-            )[0]
+            )
+            if start_after_job is None:
+                logging.error(f'job {job_id} is waiting for job {job.start_when_other_job_id_success} '
+                                f'which does not exist')
+                return
+            start_after_job = start_after_job[0]
             if start_after_job.status != JobStatusEnum.success:
                 logging.debug(
                     f"Skipping job {job} since it is waiting for job is {job.start_when_other_job_id_success} and its status is {start_after_job.status}"
