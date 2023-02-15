@@ -111,7 +111,7 @@ class Broker:
             for job in missed_heartbeat_jobs:
                 logging.debug(
                     f"seems like job ({job}) is not handled by any worker (last heartbeat {job.last_heartbeat_ts}), "
-                    f"will retry it"
+                    f"(status={job.status}) will retry it"
                 )
                 self.try_relaunch_job(job.id, relaunch_if_acknowledged=True)
 
