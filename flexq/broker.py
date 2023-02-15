@@ -70,7 +70,7 @@ class Broker:
 
     def inspect_running_jobs(self):
         logging.debug(f'current jobs in scheduler: '
-                      f'{[(j.name, j.next_run_time, j.trigger) for j in self.scheduler.get_jobs()]}')
+                      f'{[(j.id, j.name, j.next_run_time, j.trigger) for j in self.scheduler.get_jobs()]}')
         for (
             to_launch_job_id,
             to_launch_queue_name,
@@ -202,7 +202,7 @@ class Broker:
             if isinstance(job.finished_at, datetime):
                 next_run_time = job.finished_at + timedelta(**kwargs)
             else:
-                next_run_time = datetime.now() + timedelta(**kwargs)
+                next_run_time = datetime.now()
         else:
             return
 
@@ -217,7 +217,8 @@ class Broker:
                 next_run_time=next_run_time,
             )
             logging.debug(
-                f"added scheduled_job for job {job}, finished_at={job.finished_at} as id {scheduler_job_id}"
+                f"added scheduled_job for job {job}, finished_at={job.finished_at} as id {scheduler_job_id}, "
+                f"trigger={trigger}"
             )
 
     def _remove_scheduler_job_if_present(self, job_id: str):
