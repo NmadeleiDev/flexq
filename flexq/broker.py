@@ -75,8 +75,6 @@ class Broker:
             to_launch_job_id,
             to_launch_queue_name,
         ) in self.jobstore.get_not_acknowledged_jobs_ids_and_queue_names():
-            if to_launch_queue_name in [c.queue_name for c in composite_job_classes]:
-                continue
             logging.debug(
                 f"Sending notify for job {to_launch_job_id} in queue {to_launch_queue_name} as it is not acknowledged"
             )
