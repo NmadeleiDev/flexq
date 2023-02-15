@@ -211,12 +211,13 @@ class PostgresJobStore(JobStoreBase):
             where_part.append("retry_until_success = true")
         if heartbeat_missed_by_more_than_n_seconds is not None:
             where_part.append(
-                "(last_heartbeat_ts is null) or (EXTRACT(EPOCH FROM (now() - last_heartbeat_ts)) - worker_heartbeat_interval_seconds) > %s"
+                "(last_heartbeat_ts is null) or "
+                "(EXTRACT(EPOCH FROM (now() - last_heartbeat_ts)) - worker_heartbeat_interval_seconds) > %s"
             )
             args.append(heartbeat_missed_by_more_than_n_seconds)
         if status is not None:
             where_part.append("status = %s")
-            args.append(status)
+            args.append(status.value)
         if start_when_other_job_id_success is not None:
             where_part.append("start_when_other_job_id_success = %s")
             args.append(start_when_other_job_id_success)

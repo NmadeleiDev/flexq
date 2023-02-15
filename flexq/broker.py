@@ -100,6 +100,7 @@ class Broker:
 
         for job in self.jobstore.get_jobs(status=JobStatusEnum.retry) or []:
             if job.start_timestamp >= datetime.now():
+                logging.debug(f'relaunching job {job} because its time for restart')
                 self.try_relaunch_job(job.id)
 
         missed_heartbeat_jobs = self.jobstore.get_jobs(
