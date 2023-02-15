@@ -94,7 +94,8 @@ class WorkerBase:
             start_after_job = start_after_job[0]
             if start_after_job.status != JobStatusEnum.success:
                 logging.debug(
-                    f"Skipping job {job} since it is waiting for job is {job.start_when_other_job_id_success} and its status is {start_after_job.status}"
+                    f"Skipping job {job} since it is waiting for job is {job.start_when_other_job_id_success} "
+                    f"and its status is {start_after_job.status}"
                 )
                 return
 

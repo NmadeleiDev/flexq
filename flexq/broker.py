@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from flexq.exceptions.broker import FailedToEnqueueJob
-from flexq.job import Group, Job, JobStatusEnum, Pipeline
+from flexq.job import Group, Job, JobStatusEnum, Pipeline, composite_job_classes
 from flexq.jobqueues.jobqueue_base import JobQueueBase
 from flexq.jobqueues.notification import NotificationTypeEnum
 from flexq.jobstores.jobstore_base import JobStoreBase
@@ -69,10 +69,14 @@ class Broker:
         )
 
     def inspect_running_jobs(self):
+        logging.debug(f'current jobs in scheduler: '
+                      f'{[(j.name, j.next_run_time, j.trigger) for j in self.scheduler.get_jobs()]}')
         for (
             to_launch_job_id,
             to_launch_queue_name,
         ) in self.jobstore.get_not_acknowledged_jobs_ids_and_queue_names():
+            if to_launch_queue_name in [c.queue_name for c in composite_job_classes]:
+                continue
             logging.debug(
                 f"Sending notify for job {to_launch_job_id} in queue {to_launch_queue_name} as it is not acknowledged"
             )
@@ -91,7 +95,8 @@ class Broker:
                     datetime.now() - job.finished_at
                 ).total_seconds() / 60 > job.retry_delay_minutes:
                     logging.debug(
-                        f"relaunching job {job} since it is in failed state and finished more than {job.retry_delay_minutes} minutes ago (finished_at={job.finished_at})"
+                        f"relaunching job {job} since it is in failed state and finished more "
+                        f"than {job.retry_delay_minutes} minutes ago (finished_at={job.finished_at})"
                     )
                     self.try_relaunch_job(job.id)
 
@@ -131,7 +136,8 @@ class Broker:
         # отослать launch job
 
         logging.debug(
-            f"Trying to relaunch job_id={job_id}, do_send_launch={do_send_launch}, relaunch_if_acknowledged={relaunch_if_acknowledged}"
+            f"Trying to relaunch job_id={job_id}, do_send_launch={do_send_launch}, "
+            f"relaunch_if_acknowledged={relaunch_if_acknowledged}"
         )
         jobs_found = self.jobstore.get_jobs(job_id)
         if len(jobs_found) == 0:
@@ -150,7 +156,8 @@ class Broker:
             )[0]
             if start_after_job.status != JobStatusEnum.success:
                 logging.debug(
-                    f"Skipping relaunch job {job} since it is waiting for job is {job.start_when_other_job_id_success} and its status is {start_after_job.status}"
+                    f"Skipping relaunch job {job} since it is waiting for job "
+                    f"is {job.start_when_other_job_id_success} and its status is {start_after_job.status}"
                 )
                 return
 
