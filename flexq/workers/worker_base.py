@@ -237,6 +237,18 @@ class WorkerBase:
             )
         self._release_lock()
 
+    def _get_running_job_names_list(self) -> list[str]:
+        self._acquire_lock()
+        result = list(self.running_jobs.values())
+        self._release_lock()
+        return result
+
+    def _get_running_job_ids_list(self) -> list[str]:
+        self._acquire_lock()
+        result = list(self.running_jobs.keys())
+        self._release_lock()
+        return result
+
     def _get_origin_job_id(self, job: Job) -> str:
         parent_job = job
         while parent_job.parent_job_id is not None:
@@ -306,16 +318,17 @@ class WorkerBase:
         while True:
             self._acquire_lock()
             running_jobs = copy(self.running_jobs)
+            job_ids = list(running_jobs.keys())
             self._release_lock()
 
-            for job_id in running_jobs.keys():
+            for job_id in job_ids:
                 self.jobstore.set_job_last_heartbeat_ts_to_now(job_id, False)
 
             sleep(self.update_heartbeat_interval_seconds)
 
     def _todo_callback(self, job_name: str, job_id: str):
         logging.debug(f"got job_name={job_name}, job_id={job_id} in _todo_callback")
-        if job_id in self.running_jobs:
+        if job_id in self._get_running_job_ids_list():
             logging.warning(
                 f"job {job_name} with id={job_id} passed to _todo_callback, but it is already in self.running_jobs (ignore if it is composite job, they are not acknowledged)"
             )
@@ -342,7 +355,7 @@ class WorkerBase:
                 return
         if (
             self.max_parallel_executors is not None
-            and len(self.running_jobs) >= self.max_parallel_executors
+            and len(self._get_running_job_ids_list()) >= self.max_parallel_executors
         ):
             logging.info(
                 f"skipping job job_name={job_name}, job_id={job_id} due to max amount of parallel executors running"
@@ -350,7 +363,7 @@ class WorkerBase:
             return
 
         num_of_running_instances = len(
-            [x for x in self.running_jobs.values() if x == job_name]
+            [x for x in self._get_running_job_names_list() if x == job_name]
         )
         if (
             job_name in self.max_simultaneous_executions_by_executor.keys()
